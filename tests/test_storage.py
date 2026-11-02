@@ -1,5 +1,6 @@
 """Verify durable identity, reminder flags, and atomic snapshot refreshes."""
 
+from contextlib import closing
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -85,7 +86,7 @@ class StorageTests(unittest.TestCase):
 
     def test_future_schema_is_not_overwritten(self):
         self.path.parent.mkdir(parents=True)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db:
             db.execute("PRAGMA user_version = 99")
         with self.assertRaisesRegex(ValueError, "Unsupported database schema"):
             with open_database(self.path):
