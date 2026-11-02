@@ -1,0 +1,15 @@
+# All runtime settings live here. Empty theme/keyword lists disable those filters.
+online_only = true
+statuses = ["open", "upcoming"]
+themes = [] # Example: ["Machine Learning/AI"]
+keywords = [] # Example: ["agent", "Python"]
+
+[http]
+user_agent = "DevpostDeadlineReminder/0.1 (public hackathon listing; daily fetch)"
+connect_timeout = 10
+read_timeout = 30
+page_pause_seconds = 2
+per_page = 40
+max_pages = 10
+max_retries = 2
+max_retry_wait_seconds = 120
