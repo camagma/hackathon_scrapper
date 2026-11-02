@@ -157,13 +157,35 @@ def list_hackathons(
     if current_only:
         query += " WHERE is_current = 1"
     query += " ORDER BY deadline, id"
-    events = []
-    for row in connection.execute(query):
-        values = dict(row)
-        values["start_date"] = date.fromisoformat(values["start_date"])
-        values["deadline"] = date.fromisoformat(values["deadline"])
-        values["themes"] = tuple(json.loads(values["themes"]))
-        for key in ("is_current", "reminded_7d", "reminded_1d"):
-            values[key] = bool(values[key])
-        events.append(Hackathon(**values))
-    return events
+    return [_decode_event(row) for row in connection.execute(query)]
+
+
+def _decode_event(row: sqlite3.Row) -> Hackathon:
+    """Restore calendar dates, theme names, and boolean flags from one row."""
+    values = dict(row)
+    values["start_date"] = date.fromisoformat(values["start_date"])
+    values["deadline"] = date.fromisoformat(values["deadline"])
+    values["themes"] = tuple(json.loads(values["themes"]))
+    for key in ("is_current", "reminded_7d", "reminded_1d"):
+        values[key] = bool(values[key])
+    return Hackathon(**values)
+
+
+def get_hackathon(connection: sqlite3.Connection, event_id: int) -> Hackathon | None:
+    """Reload an event before deciding whether to send its reminder."""
+    row = connection.execute("SELECT * FROM hackathons WHERE id = ?", (event_id,)).fetchone()
+    return _decode_event(row) if row is not None else None
+
+
+def mark_reminded(connection: sqlite3.Connection, event_id: int, days: int) -> bool:
+    """Set one reminder flag inside the caller's transaction, without committing."""
+    if type(days) is not int or days not in (7, 1):
+        raise ValueError("Reminder threshold must be 7 or 1 days")
+    if not connection.in_transaction:
+        raise RuntimeError("Reminder flags require an explicit transaction")
+    column = {7: "reminded_7d", 1: "reminded_1d"}[days]
+    result = connection.execute(
+        f"UPDATE hackathons SET {column} = 1 WHERE id = ? AND {column} = 0",
+        (event_id,),
+    )
+    return result.rowcount == 1
