@@ -4,6 +4,7 @@ statuses = ["open", "upcoming"]
 themes = [] # Example: ["Machine Learning/AI"]
 keywords = [] # Example: ["agent", "Python"]
 database_path = "data/hackathons.sqlite3" # Relative to this configuration file
+timezone = "Europe/Kyiv" # Calendar date used for reminder selection
 
 [http]
 user_agent = "DevpostDeadlineReminder/0.1 (public hackathon listing; daily fetch)"

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import math
 import tomllib
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 @dataclass(frozen=True)
@@ -30,13 +31,14 @@ class Config:
     keywords: tuple[str, ...] = ()
     http: HttpConfig = field(default_factory=HttpConfig)
     database_path: Path = Path("data/hackathons.sqlite3")
+    timezone: str = "Europe/Kyiv"
 
 
 def load_config(path: Path) -> Config:
     """Reject invalid values before making any requests."""
     with path.open("rb") as source:
         raw = tomllib.load(source)
-    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http", "database_path"}
+    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http", "database_path", "timezone"}
     if unknown:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     online = raw.get("online_only", True)
@@ -48,6 +50,13 @@ def load_config(path: Path) -> Config:
     database_path = Path(database).expanduser()
     if not database_path.is_absolute():
         database_path = path.resolve().parent / database_path
+    timezone_name = raw.get("timezone", "Europe/Kyiv")
+    if not isinstance(timezone_name, str) or not timezone_name.strip():
+        raise ValueError("timezone must be an IANA timezone name")
+    try:
+        ZoneInfo(timezone_name)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise ValueError(f"Unknown timezone {timezone_name!r}; install requirements.txt for timezone data") from exc
     filters = {}
     for name, default in (("statuses", ["open", "upcoming"]), ("themes", []), ("keywords", [])):
         values = raw.get(name, default)
@@ -70,4 +79,4 @@ def load_config(path: Path) -> Config:
         value = getattr(http, name)
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"http.{name} must be a finite positive number")
-    return Config(online_only=online, http=http, database_path=database_path, **filters)
+    return Config(online_only=online, http=http, database_path=database_path, timezone=timezone_name, **filters)

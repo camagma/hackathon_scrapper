@@ -28,3 +28,10 @@ class ConfigTests(unittest.TestCase):
                     path.write_text(f"database_path = {value}\n", encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, "database_path"):
                         load_config(path)
+
+    def test_unknown_timezone_is_rejected(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            path.write_text('timezone = "Invalid/Timezone"\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Unknown timezone"):
+                load_config(path)
