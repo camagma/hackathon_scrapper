@@ -1,6 +1,5 @@
 """Verify independent reminder flags and explicit transaction boundaries."""
 
-from dataclasses import replace
 from datetime import date
 
 import pytest
