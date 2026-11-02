@@ -29,18 +29,25 @@ class Config:
     themes: tuple[str, ...] = ()
     keywords: tuple[str, ...] = ()
     http: HttpConfig = field(default_factory=HttpConfig)
+    database_path: Path = Path("data/hackathons.sqlite3")
 
 
 def load_config(path: Path) -> Config:
     """Reject invalid values before making any requests."""
     with path.open("rb") as source:
         raw = tomllib.load(source)
-    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http"}
+    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http", "database_path"}
     if unknown:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     online = raw.get("online_only", True)
     if not isinstance(online, bool):
         raise ValueError("online_only must be a boolean")
+    database = raw.get("database_path", "data/hackathons.sqlite3")
+    if not isinstance(database, str) or not database.strip():
+        raise ValueError("database_path must be a nonempty string")
+    database_path = Path(database).expanduser()
+    if not database_path.is_absolute():
+        database_path = path.resolve().parent / database_path
     filters = {}
     for name, default in (("statuses", ["open", "upcoming"]), ("themes", []), ("keywords", [])):
         values = raw.get(name, default)
@@ -63,4 +70,4 @@ def load_config(path: Path) -> Config:
         value = getattr(http, name)
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"http.{name} must be a finite positive number")
-    return Config(online_only=online, http=http, **filters)
+    return Config(online_only=online, http=http, database_path=database_path, **filters)

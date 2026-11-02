@@ -3,6 +3,7 @@ online_only = true
 statuses = ["open", "upcoming"]
 themes = [] # Example: ["Machine Learning/AI"]
 keywords = [] # Example: ["agent", "Python"]
+database_path = "data/hackathons.sqlite3" # Relative to this configuration file
 
 [http]
 user_agent = "DevpostDeadlineReminder/0.1 (public hackathon listing; daily fetch)"
