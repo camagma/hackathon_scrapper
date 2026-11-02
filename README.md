@@ -2,7 +2,7 @@
 
 A Python project for tracking online Devpost hackathons and receiving submission deadline reminders in Telegram.
 
-**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite, or explore saved responses offline. Reminder delivery, Telegram integration, scheduled runs, and CSV export are planned.
+**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview 7-day and 1-day reminders, with tested dispatch logic and persistent reminder flags. Telegram integration, scheduled runs, and CSV export are planned.
 
 ## Quick start
 
@@ -53,6 +53,7 @@ statuses = ["open", "upcoming"]
 themes = ["Machine Learning/AI"]
 keywords = ["agent", "Python"]
 database_path = "data/hackathons.sqlite3"
+timezone = "Europe/Kyiv"
 ```
 
 An empty `themes` or `keywords` array disables that filter. Theme names match exactly, ignoring case. Keywords match substrings in titles, organization names, or themes, ignoring case. Values within each list use OR; separate filters use AND. There is no description search because the listing does not provide descriptions.
@@ -73,15 +74,38 @@ A successful full online fetch marks absent events as no longer current while re
 
 Database files are ignored by Git. Keep the database between runs to retain reminder flags. See the [storage reference](docs/storage.md) for schema and state semantics.
 
-## Checks
+## Reminders
 
-Run the offline date, filter, HTTP-policy, storage, and CLI tests with the standard library:
+Reminders are due exactly 7 days or 1 day before the submission deadline. Only current events matching all configured filters qualify. Calendar days are calculated in `timezone` (default: `Europe/Kyiv`), independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
+
+Preview reminders using the current date:
 
 ```sh
-python -m unittest discover -s tests -v
+python main.py --preview-reminders
 ```
 
-The tests use fake HTTP responses and temporary databases, with no network requests. They can also be collected by pytest. Reminder logic and its tests are planned next.
+Preview a saved response on a fixed date, without network access:
+
+```sh
+python main.py --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
+```
+
+Preview mode still imports events into SQLite, but does not send messages or change reminder flags. `--today` requires `--preview-reminders`. Previewing repeatedly shows the same unsent reminders.
+
+The dispatch module accepts a sender callback and commits each flag after a successful send. Sender failures leave that reminder eligible for another run on the same threshold day, without undoing successful reminders. Repeated and overlapping dispatches sharing one SQLite file recheck flags under a write lock. Missed threshold days are not backfilled. Actual Telegram delivery will be connected in the next stage; the CLI currently only previews reminders.
+
+External message delivery and SQLite cannot commit atomically. A crash after external delivery but before the flag commits, or an ambiguous transport failure, can still cause a duplicate on retry. See [reminder behavior](docs/reminders.md) for the delivery contract and limits.
+
+## Checks
+
+Install development dependencies and run the offline test suite:
+
+```sh
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Tests use fake HTTP responses, injected senders, and temporary databases. An automatic pytest fixture blocks accidental HTTP requests. Coverage includes date ranges, timezone boundaries, filtering, HTTP policy, SQLite updates, independent reminder flags, repeated runs, sender failures, overlapping dispatches, and CLI previews.
 
 ## Deadline semantics
 
