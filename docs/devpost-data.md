@@ -60,7 +60,7 @@ The submission start and end dates must be parsed from `submission_period_dates`
 
 `time_left_to_submission` is approximate display text and must not be used to calculate a deadline. Prize values contain HTML and require text extraction before display or CSV export.
 
-Additional observed date formats include `Nov 09 - 30, 2026`, `Dec 19, 2026 - Jan 18, 2027`, and the single date `Dec 31, 2026`. The console currently preserves these raw submission periods; date parsing will be added with storage and reminders.
+Additional observed date formats include `Nov 09 - 30, 2026`, `Dec 19, 2026 - Jan 18, 2027`, and the single date `Dec 31, 2026`. The parser stores ISO calendar dates alongside the original period. A single-day event has identical start and deadline dates. When the start year is omitted, it is inherited from the end year; a December-to-January range uses the preceding start year. Invalid dates, reversed ranges, and unknown formats stop the sync before any database changes.
 
 ## Verified listing parameters
 
