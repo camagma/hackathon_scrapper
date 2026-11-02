@@ -12,6 +12,7 @@ from urllib.robotparser import RobotFileParser
 import requests
 
 from config import Config
+from filters import matches_fields
 
 
 ENDPOINT = "https://devpost.com/api/hackathons"
@@ -67,16 +68,14 @@ def validate_page(data: object) -> tuple[list[dict], dict]:
 
 
 def matches(item: dict, config: Config) -> bool:
-    """Combine filters with AND, and values inside each filter with OR."""
-    if item["open_state"] not in config.statuses:
-        return False
-    if config.online_only and item["displayed_location"]["location"].casefold() != "online":
-        return False
-    themes = [plain_text(t["name"]).casefold() for t in item["themes"]]
-    if config.themes and not any(t.casefold() in themes for t in config.themes):
-        return False
-    text = " ".join([plain_text(item["title"]), plain_text(item.get("organization_name") or ""), *themes]).casefold()
-    return not config.keywords or any(k.casefold() in text for k in config.keywords)
+    """Filter a raw listing record using normalized display fields."""
+    return matches_fields(
+        config, title=plain_text(item["title"]),
+        themes=(plain_text(theme["name"]) for theme in item["themes"]),
+        organization_name=plain_text(item.get("organization_name") or ""),
+        location=plain_text(item["displayed_location"]["location"]),
+        open_state=item["open_state"],
+    )
 
 
 class DevpostClient:
