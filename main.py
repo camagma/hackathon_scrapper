@@ -1,6 +1,7 @@
 """Fetch, store, and list Devpost hackathons matching configured filters."""
 
 import argparse
+from datetime import date
 import logging
 from pathlib import Path
 import sqlite3
@@ -10,7 +11,8 @@ import requests
 
 from config import load_config
 from fetch import FetchError, fetch_hackathons, load_snapshot, matches
-from storage import normalize, open_database, upsert_hackathons
+from reminders import current_date, format_reminder, pending_reminders
+from storage import list_hackathons, normalize, open_database, upsert_hackathons
 
 
 def main() -> int:
@@ -19,7 +21,11 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=Path(__file__).with_name("config.toml"))
     parser.add_argument("--offline", type=Path, help="Read a saved page without network access")
     parser.add_argument("--db", type=Path, help="Override database path (relative to current directory)")
+    parser.add_argument("--preview-reminders", action="store_true", help="Print pending reminders without sending or marking them")
+    parser.add_argument("--today", type=date.fromisoformat, help="Preview date override (YYYY-MM-DD)")
     args = parser.parse_args()
+    if args.today is not None and not args.preview_reminders:
+        parser.error("--today requires --preview-reminders")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -32,6 +38,9 @@ def main() -> int:
         database_path = args.db.expanduser() if args.db is not None else config.database_path
         with open_database(database_path) as connection:
             result = upsert_hackathons(connection, events, complete_snapshot=args.offline is None)
+            if args.preview_reminders:
+                day = args.today if args.today is not None else current_date(config)
+                preview = pending_reminders(list_hackathons(connection, current_only=True), config, day)
         selected = sorted(
             (event for event in events if event.id in selected_ids),
             key=lambda event: (event.deadline, event.id),
@@ -49,6 +58,10 @@ def main() -> int:
         print(f"  Themes: {', '.join(event.themes) or '-'}")
         print(f"  Prize: {event.prize or '-'}")
         print(f"  {event.url}")
+    if args.preview_reminders:
+        print(f"\nReminder preview for {day} ({config.timezone}): {len(preview)} pending")
+        for reminder in preview:
+            print(f"\n{format_reminder(reminder)}")
     return 0
 
 
