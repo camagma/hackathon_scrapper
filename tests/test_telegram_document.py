@@ -57,9 +57,9 @@ def test_csv_is_uploaded_as_multipart_with_caption_and_bom(upload):
     session.post.side_effect = accept
     assert client.send_document(path, caption) is None
     assert seen["files"]["document"][1].closed
-    assert "Хакатонов в файле: 1" in caption
+    assert "Hackathons in this file: 1" in caption
     assert "2026-11-10" in caption
-    assert "приёма проектов" in caption
+    assert "Nearest submission deadline" in caption
 
 
 @pytest.mark.parametrize("body,status", [

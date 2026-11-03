@@ -22,8 +22,8 @@ Messages include the title, ISO submission deadline, days remaining, and event U
 
 ```text
 AI Agent Challenge
-Дата окончания приёма проектов: 2026-11-10
-Осталось дней: 7
+Submission deadline: 2026-11-10
+Days left: 7
 https://example.com/
 ```
 

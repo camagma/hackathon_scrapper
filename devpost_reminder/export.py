@@ -46,8 +46,8 @@ class CsvExport:
     def caption(self) -> str:
         """Summarize the file without claiming a registration deadline."""
         return (
-            f"Хакатонов в файле: {self.count}. "
-            f"Ближайшая дата окончания приёма проектов: {self.nearest_deadline.isoformat()}."
+            f"Hackathons in this file: {self.count}. "
+            f"Nearest submission deadline: {self.nearest_deadline.isoformat()}."
         )
 
 

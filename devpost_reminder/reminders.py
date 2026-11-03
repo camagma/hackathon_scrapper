@@ -62,8 +62,8 @@ def format_reminder(reminder: Reminder) -> str:
     """Name the submission deadline explicitly, without a registration claim."""
     return (
         f"{reminder.event.title}\n"
-        f"Дата окончания приёма проектов: {reminder.event.deadline.isoformat()}\n"
-        f"Осталось дней: {reminder.days_left}\n"
+        f"Submission deadline: {reminder.event.deadline.isoformat()}\n"
+        f"Days left: {reminder.days_left}\n"
         f"{reminder.event.url}"
     )
 

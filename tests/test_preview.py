@@ -46,7 +46,7 @@ def test_repeated_previews_leave_flags_unset(preview_args, monkeypatch):
     for _ in range(2):
         output = run_preview(monkeypatch, args)
         assert "2026-11-03 (Etc/GMT-2): 1 pending" in output
-        assert "Осталось дней: 7" in output
+        assert "Days left: 7" in output
         with open_database(path) as connection:
             event = get_hackathon(connection, 1)
             assert not event.reminded_7d and not event.reminded_1d

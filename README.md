@@ -106,6 +106,8 @@ Database files are ignored by Git. Keep the database between runs to retain remi
 
 ## Reminders
 
+Bot-generated reminder text and CSV captions are in English. Event titles and other Devpost data retain their original language.
+
 Reminders are due exactly 7 days or 1 day before the submission deadline. Only current events matching all configured filters qualify. Calendar days are calculated in the configured IANA `timezone`, independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
 
 Preview reminders using the current date:

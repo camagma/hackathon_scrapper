@@ -56,7 +56,7 @@ def test_sends_each_threshold_once_across_cli_runs(delivery, monkeypatch):
     code, output = run_cli(monkeypatch, args)
     assert code == 0
     assert "1 sent, 0 failed" in output
-    assert "Осталось дней: 7" in post.call_args.kwargs["json"]["text"]
+    assert "Days left: 7" in post.call_args.kwargs["json"]["text"]
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 1
     monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 9))

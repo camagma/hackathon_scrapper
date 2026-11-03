@@ -65,10 +65,10 @@ def test_message_contains_submission_deadline_days_and_link(event):
     reminder = due_reminder(event, Config(), TODAY)
     text = format_reminder(reminder)
     assert event.title in text
-    assert "Дата окончания приёма проектов: 2026-11-10" in text
-    assert "Осталось дней: 7" in text
+    assert "Submission deadline: 2026-11-10" in text
+    assert "Days left: 7" in text
     assert event.url in text
-    assert "регистрац" not in text.casefold()
+    assert "registration" not in text.casefold()
 
 
 def test_midnight_uses_configured_timezone():
