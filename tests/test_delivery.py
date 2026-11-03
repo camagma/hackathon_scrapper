@@ -8,10 +8,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from config import Config
-import reminders
-from reminders import deliver_reminders
-from storage import Hackathon, get_hackathon, open_database, upsert_hackathons
+from devpost_reminder.config import Config
+import devpost_reminder.reminders as reminders
+from devpost_reminder.reminders import deliver_reminders
+from devpost_reminder.storage import Hackathon, get_hackathon, open_database, upsert_hackathons
 
 
 TODAY = date(2026, 11, 3)

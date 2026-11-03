@@ -7,11 +7,11 @@ from typing import Literal
 
 import requests
 
-from config import Config
-from fetch import fetch_hackathons, load_snapshot, matches
-from reminders import DeliveryResult, Reminder, current_date, deliver_reminders, pending_reminders
-from storage import Hackathon, SyncResult, list_hackathons, normalize, open_database, upsert_hackathons
-from telegram import TelegramClient, load_telegram_credentials
+from .config import Config
+from .fetch import fetch_hackathons, load_snapshot, matches
+from .reminders import DeliveryResult, Reminder, current_date, deliver_reminders, pending_reminders
+from .storage import Hackathon, SyncResult, list_hackathons, normalize, open_database, upsert_hackathons
+from .telegram import TelegramClient, load_telegram_credentials
 
 
 @dataclass(frozen=True)

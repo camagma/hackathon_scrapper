@@ -5,9 +5,9 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from config import Config
-from reminders import current_date, days_until, due_reminder, format_reminder, pending_reminders
-from storage import Hackathon
+from devpost_reminder.config import Config
+from devpost_reminder.reminders import current_date, days_until, due_reminder, format_reminder, pending_reminders
+from devpost_reminder.storage import Hackathon
 
 
 TODAY = date(2026, 11, 3)

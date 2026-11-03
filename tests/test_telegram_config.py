@@ -2,7 +2,7 @@
 
 import pytest
 
-from telegram import load_telegram_credentials
+from devpost_reminder.telegram import load_telegram_credentials
 
 
 @pytest.fixture(autouse=True)

@@ -9,16 +9,16 @@ import sys
 
 import requests
 
-from app import RunResult, run
-from config import load_config
-from fetch import FetchError
-from reminders import format_reminder
+from .app import RunResult, run
+from .config import load_config
+from .fetch import FetchError
+from .reminders import format_reminder
 
 
 def parse_args() -> argparse.Namespace:
     """Parse CLI options and reject incompatible modes."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=Path(__file__).with_name("config.toml"))
+    parser.add_argument("--config", type=Path, default=Path(__file__).resolve().parent.parent / "config.toml")
     parser.add_argument("--offline", type=Path, help="Read a saved page without network access")
     parser.add_argument("--db", type=Path, help="Override database path (relative to current directory)")
     delivery = parser.add_mutually_exclusive_group()

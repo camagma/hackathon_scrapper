@@ -8,7 +8,7 @@ import sqlite3
 from tempfile import TemporaryDirectory
 import unittest
 
-from storage import list_hackathons, normalize, open_database, upsert_hackathons
+from devpost_reminder.storage import list_hackathons, normalize, open_database, upsert_hackathons
 
 
 class StorageTests(unittest.TestCase):

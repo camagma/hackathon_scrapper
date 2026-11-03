@@ -8,10 +8,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from config import Config
-from main import main
-from reminders import deliver_reminders
-from storage import get_hackathon, open_database
+from devpost_reminder.config import Config
+from devpost_reminder.cli import main
+from devpost_reminder.reminders import deliver_reminders
+from devpost_reminder.storage import get_hackathon, open_database
 
 
 @pytest.fixture
@@ -24,10 +24,10 @@ def preview_args(tmp_path):
             "themes": [], "displayed_location": {"location": "Online"}, "open_state": "open",
         }], "meta": {"total_count": 1, "per_page": 40},
     }), encoding="utf-8")
-    config = tmp_path / "config.toml"
+    config = tmp_path / "devpost_reminder.config.toml"
     config.write_text('timezone = "Europe/Kyiv"\n', encoding="utf-8")
     database = tmp_path / "preview.sqlite3"
-    args = ["main.py", "--config", str(config), "--offline", str(snapshot), "--db", str(database),
+    args = ["devpost_reminder.cli.py", "--config", str(config), "--offline", str(snapshot), "--db", str(database),
             "--preview-reminders", "--today", "2026-11-03"]
     return args, database
 

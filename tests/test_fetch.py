@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 
 import requests
 
-from config import Config, HttpConfig
-from fetch import DevpostClient, FetchError, matches, plain_text, validate_page
+from devpost_reminder.config import Config, HttpConfig
+from devpost_reminder.fetch import DevpostClient, FetchError, matches, plain_text, validate_page
 
 
 def response(data, status=200, headers=None):
@@ -55,7 +55,7 @@ class FetchTests(unittest.TestCase):
         with self.assertRaisesRegex(FetchError, "invalid themes"):
             validate_page({"hackathons": [{**self.item, "themes": None}], "meta": {"total_count": 1, "per_page": 40}})
 
-    @patch("fetch.time.sleep")
+    @patch("devpost_reminder.fetch.time.sleep")
     def test_server_page_size_and_duplicate_ids(self, sleep):
         other = {**self.item, "id": 2}
         client = self.client([
@@ -86,7 +86,7 @@ class FetchTests(unittest.TestCase):
             client.fetch()
         self.assertEqual(client.session.get.call_count, 1)
 
-    @patch("fetch.time.sleep")
+    @patch("devpost_reminder.fetch.time.sleep")
     def test_bounded_rate_limit_retry(self, sleep):
         client = self.client([
             response("", 429, {"Retry-After": "3"}),
@@ -96,7 +96,7 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(client.fetch(), [])
         sleep.assert_any_call(3.0)
 
-    @patch("fetch.time.sleep")
+    @patch("devpost_reminder.fetch.time.sleep")
     def test_page_limit_rejects_partial_results(self, sleep):
         client = self.client([
             response("User-agent: *\nDisallow:\n"),

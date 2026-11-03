@@ -30,7 +30,7 @@ Install dependencies and list events from a saved response without making networ
 
 ```sh
 python -m pip install -r requirements.txt
-python main.py --offline inspection/response.json --db data/demo.sqlite3
+python -m devpost_reminder --offline inspection/response.json --db data/demo.sqlite3
 ```
 
 The command saves events to a demo database and prints matching titles, links, parsed submission dates, themes, prizes, locations, and statuses, sorted by submission deadline. An offline snapshot represents a single page; the command warns when it is incomplete.
@@ -38,10 +38,33 @@ The command saves events to a demo database and prints matching titles, links, p
 To fetch and filter the current listing:
 
 ```sh
-python main.py
+python -m devpost_reminder
 ```
 
-This checks `robots.txt` and fetches bounded listing pages. It does not modify the snapshots in `inspection/`. Use `python inspect_endpoint.py` to refresh the original single-page inspection snapshot instead.
+This checks `robots.txt` and fetches bounded listing pages. It does not modify the snapshots in `inspection/`. Use `python scripts/inspect_endpoint.py` to refresh the original single-page inspection snapshot instead.
+
+## Project structure
+
+```text
+devpost_reminder/       Application package
+  __main__.py          python -m devpost_reminder entry point
+  cli.py               Arguments, console output, and exit codes
+  app.py               Fetch, store, and deliver workflow
+  config.py            TOML configuration
+  fetch.py             Devpost HTTP client
+  filters.py           Shared filtering rules
+  dates.py             Submission date parsing
+  storage.py           SQLite persistence
+  reminders.py         Reminder selection and delivery
+  telegram.py          Telegram HTTP client and credentials
+scripts/               Standalone inspection tools
+tests/                 Offline tests
+docs/                  Data, storage, and reminder references
+inspection/            Saved Devpost responses and robots.txt
+config.toml            Runtime settings
+```
+
+Run commands from the repository root. No package installation is required.
 
 ## Configuration
 
@@ -81,13 +104,13 @@ Reminders are due exactly 7 days or 1 day before the submission deadline. Only c
 Preview reminders using the current date:
 
 ```sh
-python main.py --preview-reminders
+python -m devpost_reminder --preview-reminders
 ```
 
 Preview a saved response on a fixed date, without network access:
 
 ```sh
-python main.py --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
+python -m devpost_reminder --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
 ```
 
 Preview mode still imports events into SQLite, but does not send messages or change reminder flags. `--today` requires `--preview-reminders`. Previewing repeatedly shows the same unsent reminders.
@@ -95,7 +118,7 @@ Preview mode still imports events into SQLite, but does not send messages or cha
 To fetch current events and send due reminders after setting the Telegram environment variables:
 
 ```sh
-python main.py --send-reminders
+python -m devpost_reminder --send-reminders
 ```
 
 Sending requires a complete live fetch and cannot be combined with `--offline`, `--preview-reminders`, or `--today`. Credentials are checked before fetching or updating the database. The command reports sent, failed, and skipped reminders and exits nonzero if any send fails.

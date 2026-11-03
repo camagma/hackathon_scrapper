@@ -2,7 +2,7 @@
 
 ## Calendar-day selection
 
-`reminders.py` calculates `days_left` as the difference between two calendar dates. It never converts the submission deadline into midnight or infers a cutoff timezone from Devpost.
+`devpost_reminder/reminders.py` calculates `days_left` as the difference between two calendar dates. It never converts the submission deadline into midnight or infers a cutoff timezone from Devpost.
 
 The current date comes from the configured IANA timezone, defaulting to `Europe/Kyiv`. The dispatcher captures that date once per batch. An explicit date can be supplied to the Python API for deterministic tests; the CLI's `--today` override is restricted to preview mode.
 
@@ -44,7 +44,7 @@ Independent database copies cannot coordinate through SQLite locks. The future G
 ## Preview
 
 ```sh
-python main.py --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
+python -m devpost_reminder --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
 ```
 
 This imports the snapshot, then previews pending reminders from current stored events. It does not invoke a sender or mark reminder flags. Use a separate demo database for saved snapshots.
@@ -54,11 +54,11 @@ This imports the snapshot, then previews pending reminders from current stored e
 Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, then run:
 
 ```sh
-python main.py --send-reminders
+python -m devpost_reminder --send-reminders
 ```
 
 Credentials are validated before network access or database updates. The CLI fetches a complete listing, saves it, and connects the dispatcher to `TelegramClient.send_message`. The sender uses the configured HTTP connect/read timeouts. Successful sends retain their flags even if a later send fails; the summary reports all outcomes and exits with code 1 when any sender call fails.
 
-`app.run` coordinates these operations and returns a `RunResult` without printing. `main.py` handles argument parsing, console output, and exit codes. The same application entry point can be called without CLI arguments; it validates delivery and preview modes before performing any side effects.
+`devpost_reminder.app.run` coordinates these operations and returns a `RunResult` without printing. `devpost_reminder/cli.py` handles argument parsing, console output, and exit codes. The same application entry point can be called without CLI arguments; it validates delivery and preview modes before performing any side effects.
 
 Sending is mutually exclusive with preview mode. Offline snapshots and `--today` are only available for inspection and previews, so live delivery uses current fetched state and the configured timezone's actual date. A failed fetch prevents all sends. Plain listing mode never loads Telegram credentials or sends messages.

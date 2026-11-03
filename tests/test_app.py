@@ -6,9 +6,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from app import run
-from config import Config
-from storage import list_hackathons, open_database
+from devpost_reminder.app import run
+from devpost_reminder.config import Config
+from devpost_reminder.storage import list_hackathons, open_database
 
 
 def test_programmatic_preview_returns_results_without_printing(tmp_path, capsys):
@@ -45,8 +45,8 @@ def test_programmatic_preview_returns_results_without_printing(tmp_path, capsys)
 def test_invalid_programmatic_modes_fail_before_side_effects(tmp_path, monkeypatch, options):
     fetch = Mock(side_effect=AssertionError("Fetch should not run"))
     credentials = Mock(side_effect=AssertionError("Credentials should not be read"))
-    monkeypatch.setattr("app.fetch_hackathons", fetch)
-    monkeypatch.setattr("app.load_telegram_credentials", credentials)
+    monkeypatch.setattr("devpost_reminder.app.fetch_hackathons", fetch)
+    monkeypatch.setattr("devpost_reminder.app.load_telegram_credentials", credentials)
     path = tmp_path / "state.sqlite3"
     with pytest.raises(ValueError):
         run(Config(database_path=path), **options)

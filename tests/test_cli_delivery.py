@@ -9,9 +9,9 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from fetch import FetchError
-from main import main
-from storage import get_hackathon, open_database
+from devpost_reminder.fetch import FetchError
+from devpost_reminder.cli import main
+from devpost_reminder.storage import get_hackathon, open_database
 
 
 def response(body, status=200):
@@ -24,7 +24,7 @@ def response(body, status=200):
 
 @pytest.fixture
 def delivery(tmp_path, monkeypatch):
-    config = tmp_path / "config.toml"
+    config = tmp_path / "devpost_reminder.config.toml"
     config.write_text('keywords = ["agent"]\n', encoding="utf-8")
     path = tmp_path / "bot.sqlite3"
     items = [{
@@ -34,12 +34,12 @@ def delivery(tmp_path, monkeypatch):
     }]
     fetch = Mock(return_value=items)
     post = Mock(return_value=response({"ok": True, "result": {"message_id": 1}}))
-    monkeypatch.setattr("app.fetch_hackathons", fetch)
+    monkeypatch.setattr("devpost_reminder.app.fetch_hackathons", fetch)
     monkeypatch.setattr("requests.Session.post", post)
-    monkeypatch.setattr("reminders.current_date", lambda config: date(2026, 11, 3))
+    monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 3))
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-cli-token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "12345")
-    args = ["main.py", "--config", str(config), "--db", str(path), "--send-reminders"]
+    args = ["devpost_reminder.cli.py", "--config", str(config), "--db", str(path), "--send-reminders"]
     return args, path, items, fetch, post
 
 
@@ -59,7 +59,7 @@ def test_sends_each_threshold_once_across_cli_runs(delivery, monkeypatch):
     assert "Осталось дней: 7" in post.call_args.kwargs["json"]["text"]
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 1
-    monkeypatch.setattr("reminders.current_date", lambda config: date(2026, 11, 9))
+    monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 9))
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 2
     with open_database(path) as connection:

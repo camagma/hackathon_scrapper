@@ -8,9 +8,9 @@ import sqlite3
 from typing import Iterable
 from zoneinfo import ZoneInfo
 
-from config import Config
-from filters import matches_fields
-from storage import Hackathon, get_hackathon, list_hackathons, mark_reminded
+from .config import Config
+from .filters import matches_fields
+from .storage import Hackathon, get_hackathon, list_hackathons, mark_reminded
 
 
 LOG = logging.getLogger(__name__)

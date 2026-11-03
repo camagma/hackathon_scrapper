@@ -92,13 +92,13 @@ The JSON listing provides multiple events per request, reducing server load and 
 From the repository root:
 
 ```sh
-python inspect_endpoint.py --offline inspection/response.json
+python scripts/inspect_endpoint.py --offline inspection/response.json
 ```
 
 For a fresh snapshot:
 
 ```sh
-python inspect_endpoint.py
+python scripts/inspect_endpoint.py
 ```
 
 The script prints the first three records without modifying their fields, followed by the union of observed field names.

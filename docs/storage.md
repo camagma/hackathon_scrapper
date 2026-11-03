@@ -2,7 +2,7 @@
 
 ## Database lifecycle
 
-`storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 1 automatically. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
+`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 1 automatically. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
 
 The default location is `data/hackathons.sqlite3`, resolved relative to `config.toml`. `--db` overrides it with a path relative to the current working directory. Connections use a 30-second lock timeout and are explicitly closed after use, including on Windows.
 
@@ -47,8 +47,8 @@ See [reminder behavior](reminders.md) for external-delivery failure limits.
 Offline snapshots are incomplete and may be old. Importing one only inserts or refreshes its events and marks those events current; it does not deactivate events absent from that page. Use a separate database for offline experiments:
 
 ```sh
-python main.py --offline inspection/upcoming.json --db data/demo.sqlite3
-python main.py --offline inspection/upcoming.json --db data/demo.sqlite3
+python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sqlite3
+python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sqlite3
 ```
 
 The second run reports zero new rows. `refreshed` counts existing IDs processed, even when their metadata did not change.

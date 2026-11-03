@@ -8,9 +8,9 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from fetch import FetchError
-from main import main
-from storage import list_hackathons, open_database
+from devpost_reminder.fetch import FetchError
+from devpost_reminder.cli import main
+from devpost_reminder.storage import list_hackathons, open_database
 
 
 class MainTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class MainTests(unittest.TestCase):
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         root = Path(self.temp.name)
-        self.config = root / "config.toml"
+        self.config = root / "devpost_reminder.config.toml"
         self.config.write_text('keywords = ["agent"]\n', encoding="utf-8")
         self.db = root / "bot.sqlite3"
         self.snapshot = root / "snapshot.json"
@@ -33,7 +33,7 @@ class MainTests(unittest.TestCase):
     def run_cli(self, offline=True):
         self.snapshot.write_text(json.dumps({"hackathons": self.items,
                                             "meta": {"total_count": 2, "per_page": 40}}), encoding="utf-8")
-        args = ["main.py", "--config", str(self.config), "--db", str(self.db)]
+        args = ["devpost_reminder.cli.py", "--config", str(self.config), "--db", str(self.db)]
         if offline:
             args.extend(["--offline", str(self.snapshot)])
         output = io.StringIO()
@@ -67,7 +67,7 @@ class MainTests(unittest.TestCase):
 
     def test_incomplete_fetch_does_not_deactivate_previous_snapshot(self):
         self.assertEqual(self.run_cli()[0], 0)
-        with patch("app.fetch_hackathons", side_effect=FetchError("Incomplete listing")):
+        with patch("devpost_reminder.app.fetch_hackathons", side_effect=FetchError("Incomplete listing")):
             with self.assertLogs(level="ERROR"):
                 self.assertEqual(self.run_cli(offline=False)[0], 1)
         with open_database(self.db) as db:

@@ -11,8 +11,8 @@ from urllib.robotparser import RobotFileParser
 
 import requests
 
-from config import Config
-from filters import matches_fields
+from .config import Config
+from .filters import matches_fields
 
 
 ENDPOINT = "https://devpost.com/api/hackathons"

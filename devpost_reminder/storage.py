@@ -8,8 +8,8 @@ from pathlib import Path
 import sqlite3
 from typing import Iterable, Iterator
 
-from dates import parse_submission_period
-from fetch import plain_text
+from .dates import parse_submission_period
+from .fetch import plain_text
 
 
 SCHEMA_VERSION = 1

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from telegram import TelegramClient, TelegramCredentials, TelegramError
+from devpost_reminder.telegram import TelegramClient, TelegramCredentials, TelegramError
 
 
 def response(body, status=200):
@@ -77,7 +77,7 @@ def test_transport_failures_are_sanitized_and_not_retried(client, error_type):
 
 def test_rate_limit_prevents_requests_until_cooldown_expires(client, monkeypatch):
     sender, session = client
-    monkeypatch.setattr("telegram.time.monotonic", lambda: 100)
+    monkeypatch.setattr("devpost_reminder.telegram.time.monotonic", lambda: 100)
     session.post.return_value = response({"ok": False, "parameters": {"retry_after": 30}}, 429)
     with pytest.raises(TelegramError) as error:
         sender.send_message("First")
@@ -85,7 +85,7 @@ def test_rate_limit_prevents_requests_until_cooldown_expires(client, monkeypatch
     with pytest.raises(TelegramError, match="cooldown"):
         sender.send_message("Second")
     assert session.post.call_count == 1
-    monkeypatch.setattr("telegram.time.monotonic", lambda: 131)
+    monkeypatch.setattr("devpost_reminder.telegram.time.monotonic", lambda: 131)
     session.post.return_value = response({"ok": True, "result": {"message_id": 2}})
     sender.send_message("Third")
     assert session.post.call_count == 2

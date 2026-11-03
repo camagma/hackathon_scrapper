@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 
-from storage import Hackathon, get_hackathon, mark_reminded, open_database, upsert_hackathons
+from devpost_reminder.storage import Hackathon, get_hackathon, mark_reminded, open_database, upsert_hackathons
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@
 from datetime import date
 import unittest
 
-from dates import parse_submission_period
+from devpost_reminder.dates import parse_submission_period
 
 
 class DateTests(unittest.TestCase):
