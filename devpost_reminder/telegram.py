@@ -1,9 +1,10 @@
-"""Load Telegram credentials and send plain text through the HTTP Bot API."""
+"""Load Telegram credentials and send messages or CSVs through the HTTP Bot API."""
 
 from dataclasses import dataclass, field
 import os
 import math
 import time
+from pathlib import Path
 
 import requests
 
@@ -61,15 +62,30 @@ class TelegramClient:
         """Return only for a confirmed sendMessage result; raise on failure."""
         if not isinstance(text, str) or not text.strip() or len(text) > 4096:
             raise ValueError("Telegram text must contain 1–4096 characters and not be blank")
+        self._send("sendMessage", json={"chat_id": self._credentials.chat_id, "text": text})
+
+    def send_document(self, path: Path, caption: str = "") -> None:
+        """Upload one CSV as multipart data and always close the input file."""
+        if not isinstance(caption, str) or len(caption) > 1024:
+            raise ValueError("Telegram caption must contain at most 1024 characters")
+        with path.open("rb") as document:
+            if os.fstat(document.fileno()).st_size == 0:
+                raise ValueError("Telegram document must not be empty")
+            self._send(
+                "sendDocument", data={"chat_id": self._credentials.chat_id, "caption": caption},
+                files={"document": (path.name, document, "text/csv")},
+            )
+
+    def _send(self, method: str, **payload) -> None:
+        """Share response validation, cooldowns, and sanitized transport errors."""
         remaining = self._blocked_until - time.monotonic()
         if remaining > 0:
             raise TelegramError("Telegram rate limit cooldown is active", status_code=429,
                                 retry_after=math.ceil(remaining))
-        url = f"https://api.telegram.org/bot{self._credentials.token}/sendMessage"
+        url = f"https://api.telegram.org/bot{self._credentials.token}/{method}"
         try:
             with self._session.post(
-                url, json={"chat_id": self._credentials.chat_id, "text": text},
-                timeout=self._timeout, allow_redirects=False,
+                url, timeout=self._timeout, allow_redirects=False, **payload,
             ) as response:
                 status = response.status_code
                 try:

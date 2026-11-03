@@ -29,6 +29,14 @@ class CsvExport:
         """Return the number of unique hackathons in the file."""
         return len(self.event_ids)
 
+    @property
+    def caption(self) -> str:
+        """Summarize the file without claiming a registration deadline."""
+        return (
+            f"Хакатонов в файле: {self.count}. "
+            f"Ближайшая дата окончания приёма проектов: {self.nearest_deadline.isoformat()}."
+        )
+
 
 @contextmanager
 def generate_csv(events: Iterable[Hackathon], config: Config, today: date) -> Iterator[CsvExport | None]:
