@@ -39,7 +39,7 @@ For each candidate, the dispatcher acquires an immediate SQLite write transactio
 
 This provides durable deduplication for successful ordinary runs and concurrent dispatchers sharing one database. It cannot make an external API and SQLite commit atomically. A process crash after delivery but before flag persistence, a failed SQLite commit after delivery, or a timeout after the service accepted the message leaves delivery uncertain. A retry can duplicate that message. Flags are not preemptively set because that would silently lose reminders when sending fails.
 
-Independent database copies cannot coordinate through SQLite locks. The future GitHub Actions workflow must serialize runs and restore the latest persisted state before delivery.
+Independent database copies cannot coordinate through SQLite locks. The daily GitHub Actions workflow serializes its runs and restores the latest persisted state before delivery. Independent local runs are outside that coordination.
 
 ## Preview
 

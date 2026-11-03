@@ -2,7 +2,7 @@
 
 A Python project for tracking online Devpost hackathons and receiving submission deadline reminders in Telegram.
 
-**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders with persistent reminder flags. Scheduled runs and CSV export are planned.
+**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders, locally or through a daily GitHub Actions workflow with persisted state. CSV export is planned.
 
 ## Quick start
 
@@ -139,6 +139,12 @@ Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` w
 
 The [Telegram setup guide](docs/telegram.md) includes PowerShell and Bash commands, an explanation of empty results, and common delivery errors. Messages are sent only when an unsent 7-day or 1-day reminder is due; a successful run can report zero sent.
 
+## Scheduled runs
+
+The [daily GitHub Actions workflow](.github/workflows/reminders.yml) runs at 07:17 UTC and supports manual runs from the default branch. Configure Actions secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` before using it. Its GitHub token needs permission to write the separate `bot-state` branch.
+
+The workflow restores SQLite before delivery and saves it afterward, including after partially failed sends. Runs share one concurrency group. See [state persistence](docs/state.md#daily-workflow) for permissions, failure behavior, and recovery limits. GitHub schedules may be delayed; they are not an exact-time guarantee.
+
 ## Checks
 
 Install development dependencies and run the offline test suite:
@@ -160,7 +166,6 @@ The parser handles same-month and cross-month ranges, explicit years spanning Ne
 
 ## Roadmap
 
-- Run daily through GitHub Actions with persistent reminder state.
 - Deliver deadline-sorted CSV exports through Telegram, weekly by default.
 
 ## License

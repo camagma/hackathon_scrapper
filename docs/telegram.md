@@ -78,4 +78,4 @@ Use the same database for previews and live runs to see the stored reminder flag
 | Rate limit / HTTP 429 | Wait for the server's cooldown before trying again |
 | Transport timeout | Delivery may be uncertain; retries can duplicate a message accepted before the timeout |
 
-For selection rules and delivery limits, see [reminder behavior](reminders.md). GitHub Secrets and automated state persistence will be documented with the scheduled workflow.
+For selection rules and delivery limits, see [reminder behavior](reminders.md). For the daily workflow and required GitHub Secrets, see [scheduled state persistence](state.md#daily-workflow).

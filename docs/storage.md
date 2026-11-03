@@ -40,7 +40,7 @@ This flag does not mean that registration is open, or that an event matches loca
 
 The dispatcher locks the database with `BEGIN IMMEDIATE`, reloads each candidate, and rechecks its eligibility before sending. It updates only the matching `reminded_7d` or `reminded_1d` flag after the sender confirms success, then commits that event independently. A later sender failure does not roll back previously sent reminders. `mark_reminded` requires an explicit transaction and does not commit on its own.
 
-The write lock spans the send callback, serializing overlapping dispatchers that use the same database file. Callbacks should use bounded HTTP timeouts. This coordination does not cover independent copies of the SQLite file on different runners. Workflow-level coordination will be added with scheduling.
+The write lock spans the send callback, serializing overlapping dispatchers that use the same database file. Callbacks should use bounded HTTP timeouts. This coordination does not cover independent copies of the SQLite file on different runners. The daily workflow uses a shared concurrency group to serialize its runners.
 
 See [reminder behavior](reminders.md) for external-delivery failure limits.
 
@@ -55,6 +55,6 @@ The second run reports zero new rows. `refreshed` counts existing IDs processed,
 
 ## Durable state
 
-SQLite files and their journal files are ignored by Git. Copy or back up the database while the application is stopped. Removing or replacing it loses reminder history. GitHub Actions persistence will be implemented with the scheduled workflow; the current CLI stores state locally only.
+SQLite files and their journal files are ignored by Git on the code branch. Copy or back up the database while the application is stopped. Removing or replacing it loses reminder history. The daily GitHub Actions workflow restores and saves its database through a separate state branch; local CLI runs keep their own database.
 
-The [runner state helper](state.md) can restore and publish SQLite snapshots through a separate `bot-state` branch. Workflow integration is not enabled yet.
+See the [runner state guide](state.md) for restoration, publication, and failure handling.
