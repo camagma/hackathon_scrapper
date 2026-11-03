@@ -36,7 +36,7 @@ A green run with `0 sent` is normal when no unsent reminder is due. A red applic
 
 ### Daily operation
 
-The schedule is `17 7 * * *`: 07:17 UTC daily, corresponding to 09:17 in Kyiv in winter and 10:17 in summer. Edit `.github/workflows/reminders.yml` to change it. The app still uses `timezone` in `config.toml` to determine its current calendar date.
+The schedule is `17 7 * * *`: 07:17 UTC daily. Edit `.github/workflows/reminders.yml` to change it. The app still uses `timezone` in `config.toml` to determine its current calendar date.
 
 GitHub may delay scheduled jobs; this is not an exact-time service. Runs are serialized without cancelling the current run. Avoid manually cancelling delivery because the runner may have flags that are not yet saved remotely. Inspect failed runs, especially the save step, before retrying.
 
@@ -44,7 +44,7 @@ The workflow explicitly uses `data/hackathons.sqlite3` for restore, delivery, an
 
 ## Linux cron alternative
 
-Use an always-on machine and a persistent project directory. The examples below assume `/home/you/apps/hackathon_scrapper`; replace `/home/you` with your own absolute home path throughout. Install the project dependencies in that directory's `.venv` using Python 3.11+.
+Use an always-on machine and a persistent project directory. The examples below assume `/home/you/apps/devpost-reminder`; replace `/home/you` with your own absolute home path throughout. Install the project dependencies in that directory's `.venv` using Python 3.11+.
 
 Create a private shell file at `/home/you/.config/devpost-reminder.env`:
 
@@ -61,7 +61,7 @@ Create `/home/you/bin/run-devpost-reminders`:
 #!/bin/sh
 set -eu
 . /home/you/.config/devpost-reminder.env
-cd /home/you/apps/hackathon_scrapper
+cd /home/you/apps/devpost-reminder
 exec .venv/bin/python -m devpost_reminder --send-reminders
 ```
 

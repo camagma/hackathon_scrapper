@@ -73,14 +73,14 @@ def test_message_contains_submission_deadline_days_and_link(event):
 
 def test_midnight_uses_configured_timezone():
     now = datetime(2026, 11, 3, 22, 30, tzinfo=timezone.utc)
-    assert current_date(Config(timezone="Europe/Kyiv"), now) == date(2026, 11, 4)
+    assert current_date(Config(timezone="Etc/GMT-2"), now) == date(2026, 11, 4)
     assert current_date(Config(timezone="UTC"), now) == date(2026, 11, 3)
 
 
-def test_timezone_transition_uses_calendar_dates():
+def test_offset_timezone_uses_calendar_dates():
     before = datetime(2026, 10, 25, 0, 30, tzinfo=timezone.utc)
     after = before + timedelta(hours=2)
-    config = Config(timezone="Europe/Kyiv")
+    config = Config(timezone="Etc/GMT-2")
     assert current_date(config, before) == current_date(config, after) == date(2026, 10, 25)
     assert days_until(date(2026, 11, 1), current_date(config, after)) == 7
 

@@ -6,11 +6,11 @@ A Python project for tracking online Devpost hackathons and receiving submission
 
 ## Quick start
 
-Requires Python 3.11 or newer.
+Requires Python 3.11 or newer. Replace `OWNER/REPOSITORY` below with your repository path.
 
 ```sh
-git clone https://github.com/camagma/hackathon_scrapper.git
-cd hackathon_scrapper
+git clone https://github.com/OWNER/REPOSITORY.git devpost-reminder
+cd devpost-reminder
 python -m venv .venv
 ```
 
@@ -77,8 +77,10 @@ statuses = ["open", "upcoming"]
 themes = ["Machine Learning/AI"]
 keywords = ["agent", "Python"]
 database_path = "data/hackathons.sqlite3"
-timezone = "Europe/Kyiv"
+timezone = "Region/City"
 ```
+
+Replace `Region/City` with a valid IANA timezone name before using this example.
 
 An empty `themes` or `keywords` array disables that filter. Theme names match exactly, ignoring case. Keywords match substrings in titles, organization names, or themes, ignoring case. Values within each list use OR; separate filters use AND. There is no description search because the listing does not provide descriptions.
 
@@ -100,7 +102,7 @@ Database files are ignored by Git. Keep the database between runs to retain remi
 
 ## Reminders
 
-Reminders are due exactly 7 days or 1 day before the submission deadline. Only current events matching all configured filters qualify. Calendar days are calculated in `timezone` (default: `Europe/Kyiv`), independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
+Reminders are due exactly 7 days or 1 day before the submission deadline. Only current events matching all configured filters qualify. Calendar days are calculated in the configured IANA `timezone`, independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
 
 Preview reminders using the current date:
 

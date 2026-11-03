@@ -25,7 +25,7 @@ def preview_args(tmp_path):
         }], "meta": {"total_count": 1, "per_page": 40},
     }), encoding="utf-8")
     config = tmp_path / "devpost_reminder.config.toml"
-    config.write_text('timezone = "Europe/Kyiv"\n', encoding="utf-8")
+    config.write_text('timezone = "Etc/GMT-2"\n', encoding="utf-8")
     database = tmp_path / "preview.sqlite3"
     args = ["devpost_reminder.cli.py", "--config", str(config), "--offline", str(snapshot), "--db", str(database),
             "--preview-reminders", "--today", "2026-11-03"]
@@ -45,7 +45,7 @@ def test_repeated_previews_leave_flags_unset(preview_args, monkeypatch):
     monkeypatch.setattr("requests.Session", Mock(side_effect=AssertionError("Network is forbidden")))
     for _ in range(2):
         output = run_preview(monkeypatch, args)
-        assert "2026-11-03 (Europe/Kyiv): 1 pending" in output
+        assert "2026-11-03 (Etc/GMT-2): 1 pending" in output
         assert "Осталось дней: 7" in output
         with open_database(path) as connection:
             event = get_hackathon(connection, 1)

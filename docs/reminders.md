@@ -4,7 +4,7 @@
 
 `devpost_reminder/reminders.py` calculates `days_left` as the difference between two calendar dates. It never converts the submission deadline into midnight or infers a cutoff timezone from Devpost.
 
-The current date comes from the configured IANA timezone, defaulting to `Europe/Kyiv`. The dispatcher captures that date once per batch. An explicit date can be supplied to the Python API for deterministic tests; the CLI's `--today` override is restricted to preview mode.
+The current date comes from the configured IANA timezone, defaulting to `UTC`. The dispatcher captures that date once per batch. An explicit date can be supplied to the Python API for deterministic tests; the CLI's `--today` override is restricted to preview mode.
 
 | Days remaining | Behavior |
 | --- | --- |

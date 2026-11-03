@@ -31,7 +31,7 @@ class Config:
     keywords: tuple[str, ...] = ()
     http: HttpConfig = field(default_factory=HttpConfig)
     database_path: Path = Path("data/hackathons.sqlite3")
-    timezone: str = "Europe/Kyiv"
+    timezone: str = "UTC"
 
 
 def load_config(path: Path) -> Config:
@@ -50,7 +50,7 @@ def load_config(path: Path) -> Config:
     database_path = Path(database).expanduser()
     if not database_path.is_absolute():
         database_path = path.resolve().parent / database_path
-    timezone_name = raw.get("timezone", "Europe/Kyiv")
+    timezone_name = raw.get("timezone", "UTC")
     if not isinstance(timezone_name, str) or not timezone_name.strip():
         raise ValueError("timezone must be an IANA timezone name")
     try:
