@@ -56,3 +56,5 @@ The second run reports zero new rows. `refreshed` counts existing IDs processed,
 ## Durable state
 
 SQLite files and their journal files are ignored by Git. Copy or back up the database while the application is stopped. Removing or replacing it loses reminder history. GitHub Actions persistence will be implemented with the scheduled workflow; the current CLI stores state locally only.
+
+The [runner state helper](state.md) can restore and publish SQLite snapshots through a separate `bot-state` branch. Workflow integration is not enabled yet.

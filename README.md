@@ -57,7 +57,7 @@ devpost_reminder/       Application package
   storage.py           SQLite persistence
   reminders.py         Reminder selection and delivery
   telegram.py          Telegram HTTP client and credentials
-scripts/               Standalone inspection tools
+scripts/               Inspection and runner state tools
 tests/                 Offline tests
 docs/                  Data, storage, and reminder references
 inspection/            Saved Devpost responses and robots.txt
