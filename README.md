@@ -2,7 +2,7 @@
 
 A Python project for tracking online Devpost hackathons and receiving submission deadline reminders in Telegram.
 
-**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders, locally or through a daily GitHub Actions workflow with persisted state. CSV export is planned.
+**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders, locally or through a daily GitHub Actions workflow with persisted state. CSV generation is available as a module; scheduled CSV delivery is planned.
 
 ## Quick start
 
@@ -57,6 +57,7 @@ devpost_reminder/       Application package
   storage.py           SQLite persistence
   reminders.py         Reminder selection and delivery
   telegram.py          Telegram HTTP client and credentials
+  export.py            Temporary, filtered CSV generation
 scripts/               Inspection and runner state tools
 tests/                 Offline tests
 docs/                  Data, storage, and reminder references
@@ -146,6 +147,12 @@ The [daily GitHub Actions workflow](.github/workflows/reminders.yml) runs at 07:
 The workflow restores SQLite before delivery and saves it afterward, including after partially failed sends. Runs share one concurrency group. See [state persistence](docs/state.md#daily-workflow) for permissions, failure behavior, and recovery limits. GitHub schedules may be delayed; they are not an exact-time guarantee.
 
 Follow the [scheduling guide](docs/scheduling.md) to add GitHub Secrets, check the first run, or use Linux cron with a persistent local database instead.
+
+## CSV exports
+
+The [export module](devpost_reminder/export.py) generates a temporary CSV from stored events using the same filters as reminders. It includes IDs, titles, links, submission start dates, deadlines, days remaining, themes, prizes, and states, ordered by deadline and ID. Files use `utf-8-sig` for Excel and are removed after use.
+
+CSV generation is not yet connected to the CLI or Telegram. See the [CSV reference](docs/export.md) for selection and file-lifetime behavior.
 
 ## Checks
 
