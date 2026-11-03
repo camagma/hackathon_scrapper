@@ -2,7 +2,7 @@
 
 A Python project for tracking online Devpost hackathons and receiving submission deadline reminders in Telegram.
 
-**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview 7-day and 1-day reminders, with tested dispatch logic and persistent reminder flags. Telegram integration, scheduled runs, and CSV export are planned.
+**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders with persistent reminder flags. Scheduled runs and CSV export are planned.
 
 ## Quick start
 
@@ -92,13 +92,21 @@ python main.py --offline inspection/response.json --db data/demo.sqlite3 --previ
 
 Preview mode still imports events into SQLite, but does not send messages or change reminder flags. `--today` requires `--preview-reminders`. Previewing repeatedly shows the same unsent reminders.
 
-The dispatch module accepts a sender callback and commits each flag after a successful send. Sender failures leave that reminder eligible for another run on the same threshold day, without undoing successful reminders. Repeated and overlapping dispatches sharing one SQLite file recheck flags under a write lock. Missed threshold days are not backfilled. Actual Telegram delivery will be connected in the next stage; the CLI currently only previews reminders.
+To fetch current events and send due reminders after setting the Telegram environment variables:
+
+```sh
+python main.py --send-reminders
+```
+
+Sending requires a complete live fetch and cannot be combined with `--offline`, `--preview-reminders`, or `--today`. Credentials are checked before fetching or updating the database. The command reports sent, failed, and skipped reminders and exits nonzero if any send fails.
+
+The dispatch module commits each flag after a successful send. Sender failures leave that reminder eligible for another run on the same threshold day, without undoing successful reminders. Repeated and overlapping dispatches sharing one SQLite file recheck flags under a write lock. Missed threshold days are not backfilled. Running without `--send-reminders` never sends messages.
 
 External message delivery and SQLite cannot commit atomically. A crash after external delivery but before the flag commits, or an ambiguous transport failure, can still cause a duplicate on retry. See [reminder behavior](docs/reminders.md) for the delivery contract and limits.
 
 Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` when the delivery loader is called. They are not read from TOML or `.env` files, and are not required for listing or previews. Missing or blank values raise a configuration error; credential values are omitted from errors and object representations.
 
-`TelegramClient.send_message` implements the plain HTTP [sendMessage API](https://core.telegram.org/bots/api#sendmessage) using a caller-owned requests session. It sends JSON without a parse mode, applies connect/read timeouts, rejects redirects, and requires a successful API response with a message ID. Errors omit raw response bodies and credential-bearing transport exception strings. Sends are not retried automatically; HTTP 429 activates a per-client cooldown using `retry_after` (60 seconds if unavailable). The sender is not yet connected to CLI delivery.
+`TelegramClient.send_message` implements the plain HTTP [sendMessage API](https://core.telegram.org/bots/api#sendmessage) using a caller-owned requests session. It sends JSON without a parse mode, applies the configured HTTP connect/read timeouts, rejects redirects, and requires a successful API response with a message ID. Errors omit raw response bodies and credential-bearing transport exception strings. Sends are not retried automatically; HTTP 429 activates a per-client cooldown using `retry_after` (60 seconds if unavailable).
 
 ## Checks
 
@@ -121,7 +129,6 @@ The parser handles same-month and cross-month ranges, explicit years spanning Ne
 
 ## Roadmap
 
-- Send Telegram reminders 7 days and 1 day before the submission deadline.
 - Run daily through GitHub Actions with persistent reminder state.
 - Deliver deadline-sorted CSV exports through Telegram, weekly by default.
 

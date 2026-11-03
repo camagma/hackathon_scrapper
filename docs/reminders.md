@@ -47,4 +47,16 @@ Independent database copies cannot coordinate through SQLite locks. The future G
 python main.py --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
 ```
 
-This imports the snapshot, then previews pending reminders from current stored events. It does not invoke a sender or mark reminder flags. Use a separate demo database for saved snapshots. Actual Telegram delivery is not wired into the CLI yet.
+This imports the snapshot, then previews pending reminders from current stored events. It does not invoke a sender or mark reminder flags. Use a separate demo database for saved snapshots.
+
+## CLI delivery
+
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, then run:
+
+```sh
+python main.py --send-reminders
+```
+
+Credentials are validated before network access or database updates. The CLI fetches a complete listing, saves it, and connects the dispatcher to `TelegramClient.send_message`. The sender uses the configured HTTP connect/read timeouts. Successful sends retain their flags even if a later send fails; the summary reports all outcomes and exits with code 1 when any sender call fails.
+
+Sending is mutually exclusive with preview mode. Offline snapshots and `--today` are only available for inspection and previews, so live delivery uses current fetched state and the configured timezone's actual date. A failed fetch prevents all sends. Plain listing mode never loads Telegram credentials or sends messages.
