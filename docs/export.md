@@ -40,7 +40,15 @@ The upload closes its file handle even on failure. It shares text delivery's tim
 
 ## Delivery status
 
-Generation, the upload client, schedule rules, and successful-export storage are available as separate modules. CLI integration will connect them, including logging upload failures without stopping reminders. No CSV is currently sent by the daily workflow. Empty selections will use a short text message when delivery is connected.
+`deliver_export` connects generation, upload callbacks, scheduling, and successful-export storage. CLI integration is still pending, so the daily workflow does not send CSVs yet.
+
+The function takes a SQLite connection, configuration, document and text sender callbacks, and the current calendar date. It returns a status (`sent`, `empty`, `skipped`, or `failed`) and an event count. Both callbacks must raise on failure and return normally only after confirmed delivery.
+
+Selection, the schedule check, delivery, and success recording share one immediate transaction. Overlapping calls using the same database therefore observe the first call's committed success before deciding whether to send. A due nonempty export sends the full matching selection, even in new-event mode. After confirmed delivery, it records all exported IDs and the date.
+
+If a daily or weekly export is due but no events match, it sends `No hackathons match your current filters.` without creating or uploading a file. Confirmed text delivery records the date and an empty ID set. New-event mode with an empty selection is not due and sends nothing.
+
+File, sender, and database exceptions are logged by exception type and returned as `failed`; raw exception text is omitted to avoid credential-bearing URLs. The transaction rolls back and temporary files are cleaned up. Reminder delivery can continue independently. A successful external send followed by a failed database commit remains subject to the same uncertain-delivery limits as reminders.
 
 ## Schedule settings
 
@@ -70,4 +78,4 @@ SQLite schema version 2 adds `export_state`, storing the last successful date an
 
 `ExportState.has_new(ids)` compares the current matching IDs with the previous successful snapshot. Removing an ID does not count as a new event; an ID absent from that snapshot does, including a returning event or one newly included by a filter change. The next successful export replaces the snapshot with all currently exported IDs.
 
-State must be recorded only after Telegram confirms the document or the empty-selection text. The recording helper requires a transaction; it cannot tell whether delivery actually happened. Failed sends must not call it. A confirmed empty-selection text can record an empty ID set, preventing repeated daily or weekly empty notifications on the same date. The upload integration will enforce this order in the next change.
+State is recorded only after the sender confirms the document or the empty-selection text. The recording helper requires a transaction; `deliver_export` enforces the send-before-record order. Failed sends never advance success. A confirmed empty-selection text records an empty ID set, preventing repeated daily or weekly empty notifications on the same date.
