@@ -96,7 +96,9 @@ The dispatch module accepts a sender callback and commits each flag after a succ
 
 External message delivery and SQLite cannot commit atomically. A crash after external delivery but before the flag commits, or an ambiguous transport failure, can still cause a duplicate on retry. See [reminder behavior](docs/reminders.md) for the delivery contract and limits.
 
-Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` when the delivery loader is called. They are not read from TOML or `.env` files, and are not required for listing or previews. Missing or blank values raise a configuration error; credential values are omitted from errors and object representations. The HTTP sender and CLI delivery option are not connected yet.
+Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` when the delivery loader is called. They are not read from TOML or `.env` files, and are not required for listing or previews. Missing or blank values raise a configuration error; credential values are omitted from errors and object representations.
+
+`TelegramClient.send_message` implements the plain HTTP [sendMessage API](https://core.telegram.org/bots/api#sendmessage) using a caller-owned requests session. It sends JSON without a parse mode, applies connect/read timeouts, rejects redirects, and requires a successful API response with a message ID. Errors omit raw response bodies and credential-bearing transport exception strings. Sends are not retried automatically; HTTP 429 activates a per-client cooldown using `retry_after` (60 seconds if unavailable). The sender is not yet connected to CLI delivery.
 
 ## Checks
 
