@@ -160,7 +160,7 @@ The [export module](devpost_reminder/export.py) generates a temporary CSV from s
 
 The Telegram client can upload these CSVs with `sendDocument` and a caption containing the event count and nearest submission deadline. A document preserves a downloadable table for Excel instead of placing the CSV contents in a chat message.
 
-`[export]` accepts `mode = "daily"`, `"weekly"`, or `"new"` (only when new matching events appear). The default is weekly on Monday; `weekday` uses Monday=0 through Sunday=6. Schedule rules are implemented, but successful-export history and CLI/workflow delivery are not connected yet. See the [CSV reference](docs/export.md) for selection and scheduling behavior.
+`[export]` accepts `mode = "daily"`, `"weekly"`, or `"new"` (only when new matching events appear). The default is weekly on Monday; `weekday` uses Monday=0 through Sunday=6. SQLite stores the last successful export date and included IDs separately from reminder flags. Existing databases upgrade automatically. CLI/workflow export delivery is not connected yet. See the [CSV reference](docs/export.md) for selection and scheduling behavior.
 
 ## Checks
 

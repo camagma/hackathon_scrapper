@@ -12,7 +12,7 @@ from .dates import parse_submission_period
 from .fetch import plain_text
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS hackathons (
     id INTEGER PRIMARY KEY,
@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS hackathons (
     reminded_1d INTEGER NOT NULL DEFAULT 0 CHECK (reminded_1d IN (0, 1)),
     CHECK (length(start_date) = 10 AND length(deadline) = 10),
     CHECK (start_date <= deadline)
+)
+"""
+
+EXPORT_SCHEMA = """
+CREATE TABLE export_state (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    last_success TEXT NOT NULL CHECK (length(last_success) = 10),
+    event_ids TEXT NOT NULL
 )
 """
 
@@ -78,14 +86,60 @@ def open_database(path: Path) -> Iterator[sqlite3.Connection]:
     path.parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(path, timeout=30)) as connection:
         connection.row_factory = sqlite3.Row
-        version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version not in (0, SCHEMA_VERSION):
-            raise ValueError(f"Unsupported database schema version: {version}")
         with connection:
+            connection.execute("BEGIN IMMEDIATE")
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version not in (0, 1, SCHEMA_VERSION):
+                raise ValueError(f"Unsupported database schema version: {version}")
             connection.execute(SCHEMA)
             connection.execute("CREATE INDEX IF NOT EXISTS hackathons_deadline ON hackathons(deadline, id)")
+            if version < 2:
+                connection.execute(EXPORT_SCHEMA)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         yield connection
+
+
+@dataclass(frozen=True)
+class ExportState:
+    """Track the last confirmed export independently of reminder flags."""
+
+    last_success: date | None = None
+    event_ids: frozenset[int] = frozenset()
+
+    def has_new(self, event_ids: Iterable[int]) -> bool:
+        """Detect IDs absent from the most recent successful export."""
+        return bool(set(event_ids) - self.event_ids)
+
+
+def read_export_state(connection: sqlite3.Connection) -> ExportState:
+    """Return empty state before the first success, without writing a row."""
+    row = connection.execute("SELECT last_success, event_ids FROM export_state WHERE singleton = 1").fetchone()
+    if row is None:
+        return ExportState()
+    ids = json.loads(row["event_ids"])
+    if not isinstance(ids, list) or any(type(value) is not int for value in ids):
+        raise ValueError("Invalid event IDs in stored export state")
+    return ExportState(date.fromisoformat(row["last_success"]), frozenset(ids))
+
+
+def record_export_success(
+    connection: sqlite3.Connection, exported_on: date, event_ids: Iterable[int],
+) -> None:
+    """Record confirmed delivery in the caller's explicit transaction."""
+    if not connection.in_transaction:
+        raise RuntimeError("Export state requires an explicit transaction")
+    ids = list(event_ids)
+    if any(type(value) is not int for value in ids):
+        raise ValueError("Export event IDs must be integers")
+    previous = read_export_state(connection)
+    if previous.last_success is not None and exported_on < previous.last_success:
+        raise ValueError("Export success date cannot move backwards")
+    connection.execute(
+        """INSERT INTO export_state (singleton, last_success, event_ids) VALUES (1, ?, ?)
+        ON CONFLICT(singleton) DO UPDATE SET
+            last_success = excluded.last_success, event_ids = excluded.event_ids""",
+        (exported_on.isoformat(), json.dumps(sorted(set(ids)))),
+    )
 
 
 @dataclass(frozen=True)

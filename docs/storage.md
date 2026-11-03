@@ -2,7 +2,7 @@
 
 ## Database lifecycle
 
-`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 1 automatically. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
+`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 2 automatically. Version 1 databases are upgraded transactionally without changing existing hackathons or reminder flags. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
 
 The default location is `data/hackathons.sqlite3`, resolved relative to `config.toml`. `--db` overrides it with a path relative to the current working directory. Connections use a 30-second lock timeout and are explicitly closed after use, including on Windows.
 
@@ -54,6 +54,12 @@ python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sql
 The second run reports zero new rows. `refreshed` counts existing IDs processed, even when their metadata did not change.
 
 ## Durable state
+
+The independent `export_state` table contains one row for the last confirmed CSV delivery (or confirmed empty-selection text): its calendar date and a JSON list of exported hackathon IDs. There is no row before the first success. This is the latest export snapshot, not an append-only delivery log.
+
+`read_export_state` returns that snapshot without writing. `record_export_success` requires an explicit transaction and does not commit on its own. It replaces the previous snapshot, deduplicates IDs, and rejects a date earlier than the recorded success. A failed transaction leaves the previous snapshot intact. Export state never resets either reminder flag and contains no Telegram token or chat ID.
+
+The runner's SQLite backup includes this table, so export history survives restore/save through `bot-state` alongside reminder flags.
 
 SQLite files and their journal files are ignored by Git on the code branch. Copy or back up the database while the application is stopped. Removing or replacing it loses reminder history. The daily GitHub Actions workflow restores and saves its database through a separate state branch; local CLI runs keep their own database.
 

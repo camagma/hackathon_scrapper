@@ -7,7 +7,9 @@ import subprocess
 
 import pytest
 
-from devpost_reminder.storage import Hackathon, get_hackathon, open_database, upsert_hackathons
+from devpost_reminder.storage import (
+    Hackathon, get_hackathon, open_database, read_export_state, record_export_success, upsert_hackathons,
+)
 from scripts.state_db import StateError, restore, save
 
 
@@ -51,6 +53,10 @@ def test_round_trip_preserves_flags_without_touching_main(repo, tmp_path):
     restore(repo, database)
     assert not database.exists()
     seed(database, reminded_7d=True)
+    with open_database(database) as connection:
+        with connection:
+            connection.execute("BEGIN IMMEDIATE")
+            record_export_success(connection, date(2026, 11, 3), [1])
     assert save(repo, database)
     assert git(repo, "rev-parse", "HEAD") == original_head
     assert git(repo, "status", "--porcelain") == ""
@@ -60,6 +66,8 @@ def test_round_trip_preserves_flags_without_touching_main(repo, tmp_path):
     with open_database(restored) as connection:
         event = get_hackathon(connection, 1)
         assert event.reminded_7d and not event.reminded_1d
+        assert read_export_state(connection).last_success == date(2026, 11, 3)
+        assert read_export_state(connection).event_ids == frozenset({1})
     assert not save(repo, restored)
 
 

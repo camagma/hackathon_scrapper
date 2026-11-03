@@ -40,7 +40,7 @@ The upload closes its file handle even on failure. It shares text delivery's tim
 
 ## Delivery status
 
-Generation, the upload client, and schedule rules are available as separate modules. CLI integration and successful-export state will be added separately, including logging upload failures without stopping reminders. No CSV is currently sent by the daily workflow. Empty selections will use a short text message when delivery is connected.
+Generation, the upload client, schedule rules, and successful-export storage are available as separate modules. CLI integration will connect them, including logging upload failures without stopping reminders. No CSV is currently sent by the daily workflow. Empty selections will use a short text message when delivery is connected.
 
 ## Schedule settings
 
@@ -63,3 +63,11 @@ The default is `weekly`, with `weekday = 0` (Monday). Weekdays run from 0 throug
 `export_due` takes the current calendar date, last successful export date, and a `has_new` flag. The caller must supply dates in the configured timezone. The rule does not perform network requests or change state. Only confirmed success should advance the supplied history; a failed upload remains eligible for retry.
 
 Weekly exports do not catch up on another weekday after a missed run. New-event mode may export more than once on the same day if additional matching IDs appear. A date earlier than the last successful export never triggers a new export. These rules do not affect 7-day or 1-day reminders.
+
+## Successful-export state
+
+SQLite schema version 2 adds `export_state`, storing the last successful date and the IDs in that export. The upgrade preserves all existing event rows and reminder flags. Reading a fresh database returns empty export state, so the first nonempty selection has new IDs.
+
+`ExportState.has_new(ids)` compares the current matching IDs with the previous successful snapshot. Removing an ID does not count as a new event; an ID absent from that snapshot does, including a returning event or one newly included by a filter change. The next successful export replaces the snapshot with all currently exported IDs.
+
+State must be recorded only after Telegram confirms the document or the empty-selection text. The recording helper requires a transaction; it cannot tell whether delivery actually happened. Failed sends must not call it. A confirmed empty-selection text can record an empty ID set, preventing repeated daily or weekly empty notifications on the same date. The upload integration will enforce this order in the next change.
