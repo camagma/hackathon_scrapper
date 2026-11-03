@@ -96,6 +96,8 @@ The dispatch module accepts a sender callback and commits each flag after a succ
 
 External message delivery and SQLite cannot commit atomically. A crash after external delivery but before the flag commits, or an ambiguous transport failure, can still cause a duplicate on retry. See [reminder behavior](docs/reminders.md) for the delivery contract and limits.
 
+Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` when the delivery loader is called. They are not read from TOML or `.env` files, and are not required for listing or previews. Missing or blank values raise a configuration error; credential values are omitted from errors and object representations. The HTTP sender and CLI delivery option are not connected yet.
+
 ## Checks
 
 Install development dependencies and run the offline test suite:
