@@ -131,6 +131,14 @@ Telegram credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` w
 
 `TelegramClient.send_message` implements the plain HTTP [sendMessage API](https://core.telegram.org/bots/api#sendmessage) using a caller-owned requests session. It sends JSON without a parse mode, applies the configured HTTP connect/read timeouts, rejects redirects, and requires a successful API response with a message ID. Errors omit raw response bodies and credential-bearing transport exception strings. Sends are not retried automatically; HTTP 429 activates a per-client cooldown using `retry_after` (60 seconds if unavailable).
 
+## Telegram setup
+
+1. Create a bot through [@BotFather](https://t.me/BotFather) with `/newbot` and save its token.
+2. Open your new bot, press **Start**, and retrieve your private chat ID using the [setup guide](docs/telegram.md#get-your-chat-id).
+3. Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in your shell, then run `python -m devpost_reminder --send-reminders`.
+
+The [Telegram setup guide](docs/telegram.md) includes PowerShell and Bash commands, an explanation of empty results, and common delivery errors. Messages are sent only when an unsent 7-day or 1-day reminder is due; a successful run can report zero sent.
+
 ## Checks
 
 Install development dependencies and run the offline test suite:
@@ -144,7 +152,7 @@ Tests use fake HTTP responses, injected senders, and temporary databases. An aut
 
 ## Deadline semantics
 
-The inspected listing exposes a **submission period**, with no separate registration deadline. Planned reminders will refer to the end of that submission period.
+The inspected listing exposes a **submission period**, with no separate registration deadline. Reminders refer to the end of that submission period.
 
 Dates are human-readable ranges without a time or timezone. They represent calendar dates, not exact cutoff timestamps. See the [Devpost data reference](docs/devpost-data.md) for the observed schema and limitations.
 
