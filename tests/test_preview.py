@@ -20,8 +20,8 @@ def preview_args(tmp_path):
     snapshot.write_text(json.dumps({
         "hackathons": [{
             "id": 1, "title": "AI Challenge", "url": "https://example.com/",
-            "submission_period_dates": "Nov 01 - 10, 2026", "prize_amount": "",
-            "themes": [], "displayed_location": {"location": "Online"}, "open_state": "open",
+            "submission_period_dates": "Nov 10 - 30, 2026", "prize_amount": "",
+            "themes": [], "displayed_location": {"location": "Online"}, "open_state": "upcoming",
         }], "meta": {"total_count": 1, "per_page": 40},
     }), encoding="utf-8")
     config = tmp_path / "devpost_reminder.config.toml"
@@ -46,10 +46,10 @@ def test_repeated_previews_leave_flags_unset(preview_args, monkeypatch):
     for _ in range(2):
         output = run_preview(monkeypatch, args)
         assert "2026-11-03 (Etc/GMT-2): 1 pending" in output
-        assert "Days left: 7" in output
+        assert "Days until opening: 7" in output
         with open_database(path) as connection:
             event = get_hackathon(connection, 1)
-            assert not event.reminded_7d and not event.reminded_1d
+            assert not event.reminded_start_7d and not event.reminded_start_1d
 
 
 def test_preview_uses_stored_flags_after_a_successful_send(preview_args, monkeypatch):

@@ -1,4 +1,4 @@
-"""Select calendar-day reminders and format submission-deadline messages."""
+"""Remind users before upcoming hackathons open for submissions."""
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -39,31 +39,32 @@ def days_until(deadline: date, today: date) -> int:
 
 def due_reminder(event: Hackathon, config: Config, today: date) -> Reminder | None:
     """Select only current, matching events on an exact unsent threshold."""
-    if not event.is_current or not matches_fields(
+    if event.open_state != "upcoming" or not event.is_current or not matches_fields(
         config, title=event.title, themes=event.themes,
         organization_name=event.organization_name, location=event.location,
         open_state=event.open_state,
     ):
         return None
-    days = days_until(event.deadline, today)
-    if (days == 7 and not event.reminded_7d) or (days == 1 and not event.reminded_1d):
+    days = days_until(event.start_date, today)
+    if (days == 7 and not event.reminded_start_7d) or (days == 1 and not event.reminded_start_1d):
         return Reminder(event, days)
     return None
 
 
 def pending_reminders(events: Iterable[Hackathon], config: Config, today: date) -> list[Reminder]:
-    """Return each eligible event once, in deadline and ID order."""
+    """Return each eligible event once, in opening-date and ID order."""
     unique = {event.id: event for event in events}
-    ordered = sorted(unique.values(), key=lambda event: (event.deadline, event.id))
+    ordered = sorted(unique.values(), key=lambda event: (event.start_date, event.id))
     return [reminder for event in ordered if (reminder := due_reminder(event, config, today)) is not None]
 
 
 def format_reminder(reminder: Reminder) -> str:
-    """Name the submission deadline explicitly, without a registration claim."""
+    """Identify the opening date without claiming a registration deadline."""
     return (
         f"{reminder.event.title}\n"
+        f"Submissions open: {reminder.event.start_date.isoformat()}\n"
+        f"Days until opening: {reminder.days_left}\n"
         f"Submission deadline: {reminder.event.deadline.isoformat()}\n"
-        f"Days left: {reminder.days_left}\n"
         f"{reminder.event.url}"
     )
 
@@ -103,7 +104,7 @@ def deliver_reminders(
                           event.id, reminder.days_left, type(exc).__name__)
                 failed += 1
                 continue
-            if not mark_reminded(connection, event.id, reminder.days_left):
+            if not mark_reminded(connection, event.id, reminder.days_left, before_start=True):
                 raise RuntimeError("Reminder state changed unexpectedly during delivery")
         sent += 1
     return DeliveryResult(sent=sent, failed=failed, skipped=skipped)

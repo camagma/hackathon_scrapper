@@ -1,6 +1,6 @@
 # Devpost Hackathon Reminder
 
-A Python project for tracking online Devpost hackathons and receiving submission deadline reminders in Telegram.
+A Python project for tracking online Devpost hackathons and receiving reminders before hackathons open for submissions in Telegram.
 
 **Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders, locally or through a daily GitHub Actions workflow with persisted state. CSV generation is available as a module; scheduled CSV delivery is planned.
 
@@ -98,7 +98,7 @@ Incomplete pagination, an unexpected schema, or exhausted retries produce a nonz
 
 The SQLite database is created automatically using Python's standard-library `sqlite3`. `database_path` is relative to the configuration file. Override it with `--db path/to/state.sqlite3`, relative to the current working directory.
 
-Every fetched event is stored, including events excluded by the local theme or keyword filters. The console shows only matches from the current fetch. Devpost IDs are primary keys: repeated runs refresh existing rows without duplicates. Both reminder flags default to false and remain unchanged on updates, including deadline changes.
+Every fetched event is stored, including events excluded by the local theme or keyword filters. The console shows only matches from the current fetch. Devpost IDs are primary keys: repeated runs refresh existing rows without duplicates. The opening reminder flags default to false and remain unchanged on updates, including date changes. Legacy submission-deadline flags are retained separately and do not suppress opening reminders.
 
 A successful full online fetch marks absent events as no longer current while retaining their history. Offline imports merge their page without deactivating missing events; use a separate demo database to avoid mixing old snapshots with live state. Parsing finishes before storage starts, and updates are transactional, so a failed fetch or invalid date does not partially replace the previous snapshot.
 
@@ -108,7 +108,7 @@ Database files are ignored by Git. Keep the database between runs to retain remi
 
 Bot-generated reminder text and CSV captions are in English. Event titles and other Devpost data retain their original language.
 
-Reminders are due exactly 7 days or 1 day before the submission deadline. Only current events matching all configured filters qualify. Calendar days are calculated in the configured IANA `timezone`, independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
+Reminders are due exactly 7 days or 1 day before submissions open (`start_date`), and only for current events with status `upcoming` that match all configured filters. Open events do not receive submission-deadline reminders. Keep `upcoming` in the configured statuses to enable reminders. Calendar days are calculated in the configured IANA `timezone`, independently of the machine's timezone. `tzdata` supplies portable timezone data, including on Windows.
 
 Preview reminders using the current date:
 
@@ -119,7 +119,7 @@ python -m devpost_reminder --preview-reminders
 Preview a saved response on a fixed date, without network access:
 
 ```sh
-python -m devpost_reminder --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
+python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-02
 ```
 
 Preview mode still imports events into SQLite, but does not send messages or change reminder flags. `--today` requires `--preview-reminders`. Previewing repeatedly shows the same unsent reminders.
@@ -158,7 +158,7 @@ Follow the [scheduling guide](docs/scheduling.md) to add GitHub Secrets, check t
 
 ## CSV exports
 
-The [export module](devpost_reminder/export.py) generates a temporary CSV from stored events using the same filters as reminders. It includes IDs, titles, links, submission start dates, deadlines, days remaining, themes, prizes, and states, ordered by deadline and ID. Files use `utf-8-sig` for Excel and are removed after use.
+The [export module](devpost_reminder/export.py) generates a temporary CSV from stored events using configured location, status, theme, and keyword filters. Unlike opening reminders, it can include both open and upcoming events according to those settings. It includes IDs, titles, links, submission start dates, deadlines, days remaining, themes, prizes, and states, ordered by deadline and ID. Files use `utf-8-sig` for Excel and are removed after use.
 
 The Telegram client can upload these CSVs with `sendDocument` and a caption containing the event count and nearest submission deadline. A document preserves a downloadable table for Excel instead of placing the CSV contents in a chat message.
 
@@ -177,7 +177,7 @@ Tests use fake HTTP responses, injected senders, and temporary databases. An aut
 
 ## Deadline semantics
 
-The inspected listing exposes a **submission period**, with no separate registration deadline. Reminders refer to the end of that submission period.
+The inspected listing exposes a **submission period**, with no separate registration deadline. Reminders use the start of that period as the opening date for upcoming events. The end remains the submission deadline in storage and CSV exports; it is not a registration cutoff.
 
 Dates are human-readable ranges without a time or timezone. They represent calendar dates, not exact cutoff timestamps. See the [Devpost data reference](docs/devpost-data.md) for the observed schema and limitations.
 

@@ -59,7 +59,7 @@ These variables apply to the current shell and its child processes. Set them aga
 
 ## Check the result
 
-The command fetches current hackathons, updates SQLite, and sends due reminders. Its final line reports sent, failed, and skipped counts. Zero sent is normal when nothing matches the filters at exactly 7 or 1 days before the submission deadline, or the corresponding reminder was already sent.
+The command fetches current hackathons, updates SQLite, and sends due reminders. Its final line reports sent, failed, and skipped counts. Zero sent is normal when no upcoming event matches the filters at exactly 7 or 1 days before submissions open, or the corresponding reminder was already sent.
 
 Preview current reminders without sending or changing reminder flags:
 

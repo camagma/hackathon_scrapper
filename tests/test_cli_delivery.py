@@ -29,8 +29,8 @@ def delivery(tmp_path, monkeypatch):
     path = tmp_path / "bot.sqlite3"
     items = [{
         "id": 1, "title": "Agent challenge", "url": "https://example.com/",
-        "submission_period_dates": "Nov 01 - 10, 2026", "themes": [], "prize_amount": "",
-        "displayed_location": {"location": "Online"}, "open_state": "open",
+        "submission_period_dates": "Nov 10 - 30, 2026", "themes": [], "prize_amount": "",
+        "displayed_location": {"location": "Online"}, "open_state": "upcoming",
     }]
     fetch = Mock(return_value=items)
     post = Mock(return_value=response({"ok": True, "result": {"message_id": 1}}))
@@ -56,7 +56,7 @@ def test_sends_each_threshold_once_across_cli_runs(delivery, monkeypatch):
     code, output = run_cli(monkeypatch, args)
     assert code == 0
     assert "1 sent, 0 failed" in output
-    assert "Days left: 7" in post.call_args.kwargs["json"]["text"]
+    assert "Days until opening: 7" in post.call_args.kwargs["json"]["text"]
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 1
     monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 9))
@@ -64,7 +64,7 @@ def test_sends_each_threshold_once_across_cli_runs(delivery, monkeypatch):
     assert post.call_count == 2
     with open_database(path) as connection:
         event = get_hackathon(connection, 1)
-        assert event.reminded_7d and event.reminded_1d
+        assert event.reminded_start_7d and event.reminded_start_1d
 
 
 @pytest.mark.parametrize("failure", ["rejected", "timeout", "rate_limit"])
@@ -81,7 +81,7 @@ def test_failed_delivery_exits_nonzero_without_marking(delivery, monkeypatch, ca
     assert "0 sent, 1 failed" in output
     assert "fake-cli-token" not in caplog.text + output
     with open_database(path) as connection:
-        assert not get_hackathon(connection, 1).reminded_7d
+        assert not get_hackathon(connection, 1).reminded_start_7d
 
 
 def test_missing_credentials_fail_before_fetch_or_database_changes(delivery, monkeypatch):
@@ -121,8 +121,8 @@ def test_retry_sends_only_the_failed_event(delivery, monkeypatch):
                         response({"ok": False}, 400)]
     assert run_cli(monkeypatch, args)[0] == 1
     with open_database(path) as connection:
-        assert get_hackathon(connection, 1).reminded_7d
-        assert not get_hackathon(connection, 2).reminded_7d
+        assert get_hackathon(connection, 1).reminded_start_7d
+        assert not get_hackathon(connection, 2).reminded_start_7d
     post.side_effect = None
     post.return_value = response({"ok": True, "result": {"message_id": 2}})
     assert run_cli(monkeypatch, args)[0] == 0

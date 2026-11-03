@@ -2,28 +2,29 @@
 
 ## Calendar-day selection
 
-`devpost_reminder/reminders.py` calculates `days_left` as the difference between two calendar dates. It never converts the submission deadline into midnight or infers a cutoff timezone from Devpost.
+`devpost_reminder/reminders.py` calculates `days_left` as `start_date - today` for events with status `upcoming`. It never converts the submission deadline into midnight or infers a cutoff timezone from Devpost.
 
 The current date comes from the configured IANA timezone, defaulting to `UTC`. The dispatcher captures that date once per batch. An explicit date can be supplied to the Python API for deterministic tests; the CLI's `--today` override is restricted to preview mode.
 
 | Days remaining | Behavior |
 | --- | --- |
-| Exactly 7 | Eligible if `reminded_7d` is false |
-| Exactly 1 | Eligible if `reminded_1d` is false |
+| Exactly 7 | Eligible if `reminded_start_7d` is false |
+| Exactly 1 | Eligible if `reminded_start_1d` is false |
 | Any other value, including zero or negative | No reminder |
 
-Only `is_current` events that pass all configured status, location, theme, and keyword filters qualify. Fetched and stored events share the same filter implementation. Selection is deduplicated by event ID and ordered by deadline, then ID.
+Only `is_current` events with status `upcoming` that pass all configured filters qualify. Already-open events are excluded even if their submission deadline is 7 or 1 days away. Fetched and stored events share the same filter implementation. Selection is deduplicated by event ID and ordered by opening date, then ID.
 
-There is no catch-up window: a skipped 7-day run does not generate a reminder 6 days before the deadline. A failed send may be retried on the same threshold day. The separate 1-day reminder remains eligible even if the 7-day reminder was missed or already sent.
+There is no catch-up window: a skipped 7-day run does not generate a reminder 6 days before opening. A failed send may be retried on the same threshold day. The separate 1-day reminder remains eligible even if the 7-day reminder was missed or already sent.
 
 ## Message text
 
-Messages include the title, ISO submission deadline, days remaining, and event URL. The label explicitly identifies the end of project submissions, not registration:
+Messages include the title, opening date, days until opening, submission deadline for reference, and event URL. The start of submissions is not represented as a registration cutoff:
 
 ```text
 AI Agent Challenge
-Submission deadline: 2026-11-10
-Days left: 7
+Submissions open: 2026-11-10
+Days until opening: 7
+Submission deadline: 2026-11-30
 https://example.com/
 ```
 
@@ -33,7 +34,7 @@ https://example.com/
 
 Sender exceptions are logged with event ID, threshold, and exception type. Exception strings are omitted because transport errors can contain URLs carrying credentials. Sender failures leave flags unchanged and do not prevent other reminders from being attempted. SQLite errors propagate and stop delivery.
 
-For each candidate, the dispatcher acquires an immediate SQLite write transaction, reloads the event, and rechecks filters, deadline, and reminder state. It holds that lock through sending and flag persistence. A second dispatcher sharing the same database must wait and recheck the committed flag. A candidate that became ineligible is skipped. The two reminder flags are independent and survive metadata updates and deadline changes.
+For each candidate, the dispatcher acquires an immediate SQLite write transaction, reloads the event, and rechecks upcoming status, filters, opening date, and reminder state. It holds that lock through sending and flag persistence. A second dispatcher sharing the same database must wait and recheck the committed flag. A candidate that became ineligible is skipped. The opening reminder flags are independent and survive metadata and date updates. Schema version 3 adds them without resetting legacy deadline reminder flags or export history. Legacy flags never suppress the new opening reminders.
 
 ## Delivery limits
 
@@ -44,7 +45,7 @@ Independent database copies cannot coordinate through SQLite locks. The daily Gi
 ## Preview
 
 ```sh
-python -m devpost_reminder --offline inspection/response.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-05
+python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sqlite3 --preview-reminders --today 2026-11-02
 ```
 
 This imports the snapshot, then previews pending reminders from current stored events. It does not invoke a sender or mark reminder flags. Use a separate demo database for saved snapshots.

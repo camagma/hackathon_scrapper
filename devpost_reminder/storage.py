@@ -12,7 +12,7 @@ from .dates import parse_submission_period
 from .fetch import plain_text
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS hackathons (
     id INTEGER PRIMARY KEY,
@@ -61,6 +61,8 @@ class Hackathon:
     is_current: bool = True
     reminded_7d: bool = False
     reminded_1d: bool = False
+    reminded_start_7d: bool = False
+    reminded_start_1d: bool = False
 
 
 def normalize(item: dict) -> Hackathon:
@@ -89,12 +91,17 @@ def open_database(path: Path) -> Iterator[sqlite3.Connection]:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, SCHEMA_VERSION):
+            if version not in (0, 1, 2, SCHEMA_VERSION):
                 raise ValueError(f"Unsupported database schema version: {version}")
             connection.execute(SCHEMA)
             connection.execute("CREATE INDEX IF NOT EXISTS hackathons_deadline ON hackathons(deadline, id)")
             if version < 2:
                 connection.execute(EXPORT_SCHEMA)
+            if version < 3:
+                for column in ("reminded_start_7d", "reminded_start_1d"):
+                    connection.execute(
+                        f"ALTER TABLE hackathons ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0 CHECK ({column} IN (0, 1))"
+                    )
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         yield connection
 
@@ -220,7 +227,7 @@ def _decode_event(row: sqlite3.Row) -> Hackathon:
     values["start_date"] = date.fromisoformat(values["start_date"])
     values["deadline"] = date.fromisoformat(values["deadline"])
     values["themes"] = tuple(json.loads(values["themes"]))
-    for key in ("is_current", "reminded_7d", "reminded_1d"):
+    for key in ("is_current", "reminded_7d", "reminded_1d", "reminded_start_7d", "reminded_start_1d"):
         values[key] = bool(values[key])
     return Hackathon(**values)
 
@@ -231,13 +238,16 @@ def get_hackathon(connection: sqlite3.Connection, event_id: int) -> Hackathon | 
     return _decode_event(row) if row is not None else None
 
 
-def mark_reminded(connection: sqlite3.Connection, event_id: int, days: int) -> bool:
+def mark_reminded(
+    connection: sqlite3.Connection, event_id: int, days: int, *, before_start: bool = False,
+) -> bool:
     """Set one reminder flag inside the caller's transaction, without committing."""
     if type(days) is not int or days not in (7, 1):
         raise ValueError("Reminder threshold must be 7 or 1 days")
     if not connection.in_transaction:
         raise RuntimeError("Reminder flags require an explicit transaction")
-    column = {7: "reminded_7d", 1: "reminded_1d"}[days]
+    column = ({7: "reminded_start_7d", 1: "reminded_start_1d"} if before_start
+              else {7: "reminded_7d", 1: "reminded_1d"})[days]
     result = connection.execute(
         f"UPDATE hackathons SET {column} = 1 WHERE id = ? AND {column} = 0",
         (event_id,),

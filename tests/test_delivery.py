@@ -22,9 +22,9 @@ def state(tmp_path):
     path = tmp_path / "state.sqlite3"
     event = Hackathon(
         id=1, title="Agent Challenge", url="https://example.com/",
-        start_date=date(2026, 11, 1), deadline=date(2026, 11, 10),
-        submission_period="Nov 01 - 10, 2026", themes=(), prize="",
-        open_state="open", location="Online", organization_name="Example",
+        start_date=date(2026, 11, 10), deadline=date(2026, 11, 30),
+        submission_period="Nov 10 - 30, 2026", themes=(), prize="",
+        open_state="upcoming", location="Online", organization_name="Example",
     )
     with open_database(path) as connection:
         upsert_hackathons(connection, [event], complete_snapshot=True)
@@ -41,7 +41,17 @@ def test_each_reminder_sent_once_across_reopens_and_syncs(state):
     assert sender.call_count == 2
     with open_database(path) as connection:
         event = get_hackathon(connection, 1)
-        assert event.reminded_7d and event.reminded_1d
+        assert event.reminded_start_7d and event.reminded_start_1d
+        assert not event.reminded_7d and not event.reminded_1d
+
+
+def test_changing_to_open_stops_future_opening_reminders(state):
+    path, event = state
+    with open_database(path) as connection:
+        upsert_hackathons(connection, [replace(event, open_state="open")])
+        sender = Mock()
+        assert deliver_reminders(connection, Config(), sender, today=TODAY).sent == 0
+        sender.assert_not_called()
 
 
 def test_failed_send_keeps_flag_unset_and_can_retry_same_day(state, caplog):
@@ -50,7 +60,7 @@ def test_failed_send_keeps_flag_unset_and_can_retry_same_day(state, caplog):
     with open_database(path) as connection:
         result = deliver_reminders(connection, Config(), failed, today=TODAY)
         assert (result.sent, result.failed) == (0, 1)
-        assert not get_hackathon(connection, 1).reminded_7d
+        assert not get_hackathon(connection, 1).reminded_start_7d
     assert "credential-bearing-url" not in caplog.text
     with open_database(path) as connection:
         sender = Mock()
@@ -65,8 +75,8 @@ def test_later_failure_does_not_undo_earlier_success(state):
         sender = Mock(side_effect=[None, RuntimeError("Rejected")])
         result = deliver_reminders(connection, Config(), sender, today=TODAY)
         assert (result.sent, result.failed) == (1, 1)
-        assert get_hackathon(connection, 1).reminded_7d
-        assert not get_hackathon(connection, 2).reminded_7d
+        assert get_hackathon(connection, 1).reminded_start_7d
+        assert not get_hackathon(connection, 2).reminded_start_7d
     with open_database(path) as connection:
         sender = Mock()
         assert deliver_reminders(connection, Config(), sender, today=TODAY).sent == 1
@@ -74,7 +84,7 @@ def test_later_failure_does_not_undo_earlier_success(state):
 
 
 @pytest.mark.parametrize("change", [
-    "reminded_7d = 1", "is_current = 0", "title = 'Other challenge'", "deadline = '2026-11-11'",
+    "reminded_start_7d = 1", "is_current = 0", "title = 'Other challenge'", "start_date = '2026-11-11'",
 ])
 def test_candidate_is_rechecked_after_another_writer_changes_it(state, monkeypatch, change):
     path, _ = state

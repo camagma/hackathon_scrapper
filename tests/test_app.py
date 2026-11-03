@@ -15,8 +15,8 @@ def test_programmatic_preview_returns_results_without_printing(tmp_path, capsys)
     snapshot = tmp_path / "events.json"
     item = {
         "id": 1, "title": "Agent challenge", "url": "https://example.com/",
-        "submission_period_dates": "Nov 01 - 10, 2026", "themes": [],
-        "prize_amount": "$<span>100</span>", "open_state": "open",
+        "submission_period_dates": "Nov 10 - 30, 2026", "themes": [],
+        "prize_amount": "$<span>100</span>", "open_state": "upcoming",
         "displayed_location": {"location": "Online"},
     }
     snapshot.write_text(json.dumps({"hackathons": [item], "meta": {"total_count": 1, "per_page": 40}}))
@@ -30,7 +30,7 @@ def test_programmatic_preview_returns_results_without_printing(tmp_path, capsys)
     assert result.delivery is None
     assert capsys.readouterr().out == ""
     with open_database(path) as connection:
-        assert not list_hackathons(connection)[0].reminded_7d
+        assert not list_hackathons(connection)[0].reminded_start_7d
     repeated = run(config, offline=snapshot)
     assert repeated.sync.inserted == 0
     assert repeated.sync.refreshed == 1

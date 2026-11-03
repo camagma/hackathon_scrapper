@@ -9,7 +9,7 @@ import pytest
 from devpost_reminder.config import ExportConfig
 from devpost_reminder.export import export_due
 from devpost_reminder.storage import (
-    SCHEMA, ExportState, get_hackathon, open_database, read_export_state, record_export_success,
+    SCHEMA, EXPORT_SCHEMA, ExportState, get_hackathon, open_database, read_export_state, record_export_success,
 )
 
 
@@ -108,7 +108,7 @@ def test_version_one_migrates_without_losing_reminders(tmp_path):
                       'Nov 01 - 10, 2026', '[]', '', 'open', 'Online', 'Example', 1, 1)""")
     for _ in range(2):
         with open_database(path) as connection:
-            assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+            assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
             event = get_hackathon(connection, 1)
             assert event.title == "Legacy event" and event.reminded_7d and event.reminded_1d
             assert read_export_state(connection) == ExportState()
@@ -125,3 +125,18 @@ def test_migration_failure_does_not_advance_version(tmp_path):
     with closing(sqlite3.connect(path)) as connection:
         assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
         assert connection.execute("PRAGMA table_info(export_state)").fetchone()[1] == "conflicting_column"
+
+
+def test_version_two_migration_preserves_export_history_and_adds_fresh_flags(tmp_path):
+    path = tmp_path / "version_two.sqlite3"
+    with closing(sqlite3.connect(path)) as connection:
+        with connection:
+            connection.execute(SCHEMA)
+            connection.execute(EXPORT_SCHEMA)
+            connection.execute("PRAGMA user_version = 2")
+            connection.execute("INSERT INTO export_state VALUES (1, '2026-11-03', '[1, 2]')")
+    with open_database(path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert read_export_state(connection) == ExportState(DAY, frozenset({1, 2}))
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(hackathons)")}
+        assert {"reminded_start_7d", "reminded_start_1d"} <= columns

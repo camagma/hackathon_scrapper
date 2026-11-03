@@ -56,7 +56,7 @@ These metadata values describe the saved response, not fixed API guarantees.
 
 No separate registration deadline appears in the sampled records. `registrations_count` is a count, not a date.
 
-The submission start and end dates must be parsed from `submission_period_dates`; separate structured date fields are absent. No exact time or timezone is provided. Reminder messages must identify the deadline as the **submission deadline** and preserve calendar-date precision.
+The submission start and end dates must be parsed from `submission_period_dates`; separate structured date fields are absent. No exact time or timezone is provided. Opening reminders use the start date for upcoming events. The end date remains the **submission deadline** for reference and CSV exports. Neither date is a separate registration deadline; both retain calendar-date precision.
 
 `time_left_to_submission` is approximate display text and must not be used to calculate a deadline. Prize values contain HTML and require text extraction before display or CSV export.
 

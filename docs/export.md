@@ -4,7 +4,7 @@
 
 ## Selection and columns
 
-The export includes current records that match the configured location, status, theme, and keyword filters. Historical records marked `is_current = false` are excluded. Reminder flags do not affect export selection. The module deduplicates IDs and sorts by submission deadline ascending, then ID for stable ordering.
+The export includes current records that match the configured location, status, theme, and keyword filters. It can include open and upcoming events; the reminder-only upcoming restriction does not apply to CSV selection. Historical records marked `is_current = false` are excluded. Reminder flags do not affect export selection. The module deduplicates IDs and sorts by submission deadline ascending, then ID for stable ordering.
 
 Columns are written in this order:
 

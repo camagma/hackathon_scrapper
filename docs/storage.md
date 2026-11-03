@@ -2,7 +2,7 @@
 
 ## Database lifecycle
 
-`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 2 automatically. Version 1 databases are upgraded transactionally without changing existing hackathons or reminder flags. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
+`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 3 automatically. Version 1 and 2 databases are upgraded transactionally without changing existing hackathons or reminder flags. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
 
 The default location is `data/hackathons.sqlite3`, resolved relative to `config.toml`. `--db` overrides it with a path relative to the current working directory. Connections use a 30-second lock timeout and are explicitly closed after use, including on Windows.
 
@@ -18,7 +18,8 @@ The default location is `data/hackathons.sqlite3`, resolved relative to `config.
 | `prize` | Plain text with HTML removed |
 | `open_state`, `location`, `organization_name` | Metadata for filtering and display |
 | `is_current` | Boolean integer indicating membership in the latest complete fetched scope |
-| `reminded_7d`, `reminded_1d` | Independent boolean integers, initially `0` |
+| `reminded_7d`, `reminded_1d` | Preserved legacy submission-deadline flags |
+| `reminded_start_7d`, `reminded_start_1d` | Independent opening reminder flags, initially `0` |
 
 An index on `(deadline, id)` supports stable deadline ordering. Boolean and date-order constraints guard stored state. The date parser validates calendar dates before they reach SQLite.
 
@@ -34,11 +35,11 @@ The CLI normalizes every fetched record before opening the database. Unknown dat
 
 The database stores all fetched events; local theme and keyword filters affect console output, not storage. A complete online fetch atomically clears `is_current` and sets it for returned IDs. Events outside the current server-side scope, including those that disappeared or no longer match configured status/location filters, remain stored with `is_current = 0`.
 
-This flag does not mean that registration is open, or that an event matches local filters. Reminder selection also applies all configured filters and exact deadline thresholds. Future exports must apply their own selection rules as well.
+This flag does not mean that registration is open, or that an event matches local filters. Reminder selection also applies all configured filters and exact opening-date thresholds for upcoming events. Future exports must apply their own selection rules as well.
 
 ## Reminder transactions
 
-The dispatcher locks the database with `BEGIN IMMEDIATE`, reloads each candidate, and rechecks its eligibility before sending. It updates only the matching `reminded_7d` or `reminded_1d` flag after the sender confirms success, then commits that event independently. A later sender failure does not roll back previously sent reminders. `mark_reminded` requires an explicit transaction and does not commit on its own.
+The dispatcher locks the database with `BEGIN IMMEDIATE`, reloads each candidate, and rechecks its eligibility before sending. It updates only the matching `reminded_start_7d` or `reminded_start_1d` flag after the sender confirms success, then commits that event independently. A later sender failure does not roll back previously sent reminders. `mark_reminded(..., before_start=True)` requires an explicit transaction and does not commit on its own. The default retains access to legacy flags; live dispatch only uses opening flags.
 
 The write lock spans the send callback, serializing overlapping dispatchers that use the same database file. Callbacks should use bounded HTTP timeouts. This coordination does not cover independent copies of the SQLite file on different runners. The daily workflow uses a shared concurrency group to serialize its runners.
 
