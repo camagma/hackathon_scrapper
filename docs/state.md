@@ -16,6 +16,8 @@ The workflow runs at `07:17 UTC` each day, or manually through **Actions → Dai
 
 Set repository Actions secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` before enabling delivery. The job requests `contents: write` so the checkout's built-in GitHub token can create and update `bot-state`; a personal access token is not required. Repository or organization rules must permit this write. Telegram secrets are passed only to the reminder step.
 
+The [scheduling guide](scheduling.md) covers secret creation, first-run checks, and a Linux cron alternative.
+
 There is no push or pull-request trigger. Updates to the state branch therefore do not trigger another delivery run. The database path is explicitly shared between restore, application, and save steps; changing `database_path` in TOML does not override the workflow's `--db` argument.
 
 ## Runner usage

@@ -145,6 +145,8 @@ The [daily GitHub Actions workflow](.github/workflows/reminders.yml) runs at 07:
 
 The workflow restores SQLite before delivery and saves it afterward, including after partially failed sends. Runs share one concurrency group. See [state persistence](docs/state.md#daily-workflow) for permissions, failure behavior, and recovery limits. GitHub schedules may be delayed; they are not an exact-time guarantee.
 
+Follow the [scheduling guide](docs/scheduling.md) to add GitHub Secrets, check the first run, or use Linux cron with a persistent local database instead.
+
 ## Checks
 
 Install development dependencies and run the offline test suite:
