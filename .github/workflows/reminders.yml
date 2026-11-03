@@ -43,13 +43,13 @@ jobs:
         id: restore
         run: python scripts/state_db.py restore --database "$STATE_DATABASE"
 
-      - name: Fetch hackathons and send reminders
+      - name: Fetch hackathons, send reminders and scheduled CSV
         id: reminders
         timeout-minutes: 10
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python -m devpost_reminder --send-reminders --db "$STATE_DATABASE"
+        run: python -m devpost_reminder --send-reminders --send-export --db "$STATE_DATABASE"
 
       - name: Save reminder state
         # A failed send must not discard flags from earlier successful sends.

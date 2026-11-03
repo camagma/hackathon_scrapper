@@ -36,7 +36,7 @@ def delivery(tmp_path, monkeypatch):
     post = Mock(return_value=response({"ok": True, "result": {"message_id": 1}}))
     monkeypatch.setattr("devpost_reminder.app.fetch_hackathons", fetch)
     monkeypatch.setattr("requests.Session.post", post)
-    monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 3))
+    monkeypatch.setattr("devpost_reminder.app.current_date", lambda config: date(2026, 11, 3))
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-cli-token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "12345")
     args = ["devpost_reminder.cli.py", "--config", str(config), "--db", str(path), "--send-reminders"]
@@ -59,7 +59,7 @@ def test_sends_each_threshold_once_across_cli_runs(delivery, monkeypatch):
     assert "Days until opening: 7" in post.call_args.kwargs["json"]["text"]
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 1
-    monkeypatch.setattr("devpost_reminder.reminders.current_date", lambda config: date(2026, 11, 9))
+    monkeypatch.setattr("devpost_reminder.app.current_date", lambda config: date(2026, 11, 9))
     assert run_cli(monkeypatch, args)[0] == 0
     assert post.call_count == 2
     with open_database(path) as connection:

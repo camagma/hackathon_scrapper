@@ -20,7 +20,7 @@ The file uses comma-separated columns, standard CSV quoting, `newline=""`, and `
 
 The generator is a context manager. Inside its context, it yields a `CsvExport` containing the temporary file path, event IDs, count, and nearest deadline. A caller must read or upload the file before leaving that context. The file and its temporary directory are removed on both normal exit and exceptions.
 
-When no events match, the generator yields `None` and does not create a file. The module does not write to SQLite, change reminder flags, or store CSVs in the repository.
+When no events match, the generator yields `None` and does not create a file. Generation does not write to SQLite or change reminder flags, and CSVs are never stored in the repository. The separate delivery function updates successful-export history.
 
 ## Telegram upload
 
@@ -40,7 +40,7 @@ The upload closes its file handle even on failure. It shares text delivery's tim
 
 ## Delivery status
 
-`deliver_export` connects generation, upload callbacks, scheduling, and successful-export storage. CLI integration is still pending, so the daily workflow does not send CSVs yet.
+`deliver_export` connects generation, upload callbacks, scheduling, and successful-export storage. The CLI's `--send-export` option and daily workflow use it after opening reminders, if reminders were requested.
 
 The function takes a SQLite connection, configuration, document and text sender callbacks, and the current calendar date. It returns a status (`sent`, `empty`, `skipped`, or `failed`) and an event count. Both callbacks must raise on failure and return normally only after confirmed delivery.
 
@@ -49,6 +49,21 @@ Selection, the schedule check, delivery, and success recording share one immedia
 If a daily or weekly export is due but no events match, it sends `No hackathons match your current filters.` without creating or uploading a file. Confirmed text delivery records the date and an empty ID set. New-event mode with an empty selection is not due and sends nothing.
 
 File, sender, and database exceptions are logged by exception type and returned as `failed`; raw exception text is omitted to avoid credential-bearing URLs. The transaction rolls back and temporary files are cleaned up. Reminder delivery can continue independently. A successful external send followed by a failed database commit remains subject to the same uncertain-delivery limits as reminders.
+
+## Run from the CLI
+
+```sh
+python -m devpost_reminder --send-export
+python -m devpost_reminder --send-reminders --send-export
+```
+
+The first command only checks the export schedule; the second also sends opening reminders. Both require the same Telegram environment variables and a live fetch. Offline mode, preview mode, and date overrides cannot be combined with CSV delivery. Plain listing and preview modes never send a CSV.
+
+The summary reports `CSV export: sent`, `empty`, `skipped`, or `failed`, plus the event count. A skipped export means its schedule is not due or its successful snapshot already covers the current date/new-event selection. `--send-export` does not bypass these checks. To test on a non-Monday, temporarily set `[export].mode = "daily"`; after a successful export, subsequent runs that day skip it.
+
+The application captures one date in the configured timezone for reminders and CSV. It attempts exports even after individual reminder failures and reports a failed process exit if either operation fails. On HTTP 429, the shared Telegram client's cooldown applies to both methods, so delivery may need a later run after that cooldown.
+
+The daily workflow passes both flags. Its final save step retains reminder and export history in the same SQLite snapshot, including after partial failures. Cron users can pass both flags in their wrapper too.
 
 ## Schedule settings
 

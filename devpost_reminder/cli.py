@@ -24,12 +24,15 @@ def parse_args() -> argparse.Namespace:
     delivery = parser.add_mutually_exclusive_group()
     delivery.add_argument("--preview-reminders", action="store_true", help="Print pending reminders without sending or marking them")
     delivery.add_argument("--send-reminders", action="store_true", help="Send due reminders to Telegram after a complete live fetch")
+    parser.add_argument("--send-export", action="store_true", help="Send a CSV or empty-result text when the export schedule is due")
     parser.add_argument("--today", type=date.fromisoformat, help="Preview date override (YYYY-MM-DD)")
     args = parser.parse_args()
     if args.today is not None and not args.preview_reminders:
         parser.error("--today requires --preview-reminders")
     if args.send_reminders and args.offline is not None:
         parser.error("--send-reminders requires a live fetch; use --preview-reminders for snapshots")
+    if args.send_export and (args.offline is not None or args.preview_reminders):
+        parser.error("--send-export requires a live fetch and cannot be combined with preview mode")
     return args
 
 
@@ -52,6 +55,8 @@ def print_result(result: RunResult) -> None:
     if result.delivery is not None:
         delivered = result.delivery
         print(f"\nTelegram reminders: {delivered.sent} sent, {delivered.failed} failed, {delivered.skipped} skipped")
+    if result.export_delivery is not None:
+        print(f"\nCSV export: {result.export_delivery.status} ({result.export_delivery.count} hackathons)")
 
 
 def main() -> int:
@@ -63,12 +68,15 @@ def main() -> int:
     try:
         config = load_config(args.config)
         mode = "send" if args.send_reminders else "preview" if args.preview_reminders else "list"
-        result = run(config, mode=mode, offline=args.offline, database_path=args.db, today=args.today)
+        result = run(config, mode=mode, offline=args.offline, database_path=args.db,
+                     today=args.today, send_export=args.send_export)
     except (OSError, ValueError, FetchError, requests.RequestException, sqlite3.Error) as exc:
         logging.error("Unable to sync hackathons: %s", exc)
         return 1
     print_result(result)
-    return 1 if result.delivery is not None and result.delivery.failed else 0
+    reminder_failed = result.delivery is not None and result.delivery.failed > 0
+    export_failed = result.export_delivery is not None and result.export_delivery.status == "failed"
+    return 1 if reminder_failed or export_failed else 0
 
 
 if __name__ == "__main__":

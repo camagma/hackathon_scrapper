@@ -20,6 +20,8 @@ The [scheduling guide](scheduling.md) covers secret creation, first-run checks, 
 
 There is no push or pull-request trigger. Updates to the state branch therefore do not trigger another delivery run. The database path is explicitly shared between restore, application, and save steps; changing `database_path` in TOML does not override the workflow's `--db` argument.
 
+The application step passes `--send-reminders --send-export`. CSV is weekly on Monday by default, using `[export]` settings for its own schedule. Export date and ID history are saved in the same database as reminder flags, so a repeated successful daily/weekly export is skipped after restoration.
+
 ## Runner usage
 
 Use a disposable checkout with Git, Python 3.11+, an `origin` remote, and permission to push to `bot-state`. The helper itself uses only the standard library. It does not modify the main branch or require a separate local checkout of the state branch.

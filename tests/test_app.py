@@ -41,6 +41,8 @@ def test_programmatic_preview_returns_results_without_printing(tmp_path, capsys)
     {"mode": "unknown"}, {"mode": "send", "offline": "events.json"},
     {"mode": "send", "today": date(2026, 11, 3)},
     {"mode": "list", "today": date(2026, 11, 3)},
+    {"mode": "preview", "send_export": True},
+    {"send_export": True, "offline": "events.json"},
 ])
 def test_invalid_programmatic_modes_fail_before_side_effects(tmp_path, monkeypatch, options):
     fetch = Mock(side_effect=AssertionError("Fetch should not run"))

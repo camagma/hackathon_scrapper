@@ -27,7 +27,7 @@ Do not create an empty `bot-state` branch manually. The helper creates it on the
 
 1. Open **Actions → Daily hackathon reminders → Run workflow**.
 2. Select the repository's default branch, normally `main`, and start the run.
-3. Check **Restore reminder state**, **Fetch hackathons and send reminders**, and **Save reminder state** in the job logs.
+3. Check **Restore reminder state**, **Fetch hackathons, send reminders and scheduled CSV**, and **Save reminder state** in the job logs.
 4. Confirm that `bot-state` contains `hackathons.sqlite3` after the application created a database and saving succeeded.
 
 The workflow is already configured for manual runs. It must exist on the default branch; see [GitHub's manual-run guide](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow). This workflow skips delivery if you choose another branch.
@@ -37,6 +37,8 @@ A green run with `0 sent` is normal when no unsent reminder is due. A red applic
 ### Daily operation
 
 The schedule is `17 7 * * *`: 07:17 UTC daily. Edit `.github/workflows/reminders.yml` to change it. The app still uses `timezone` in `config.toml` to determine its current calendar date.
+
+Every run checks both opening reminders and CSV delivery. `[export]` in `config.toml` controls when CSV is due: weekly on Monday by default, daily, or only when new matching IDs appear. No additional secrets or separate workflow is needed. The final SQLite save includes export history; `CSV export: skipped` is normal on days outside the export schedule.
 
 GitHub may delay scheduled jobs; this is not an exact-time service. Runs are serialized without cancelling the current run. Avoid manually cancelling delivery because the runner may have flags that are not yet saved remotely. Inspect failed runs, especially the save step, before retrying.
 
@@ -62,7 +64,7 @@ Create `/home/you/bin/run-devpost-reminders`:
 set -eu
 . /home/you/.config/devpost-reminder.env
 cd /home/you/apps/devpost-reminder
-exec .venv/bin/python -m devpost_reminder --send-reminders
+exec .venv/bin/python -m devpost_reminder --send-reminders --send-export
 ```
 
 Set the wrapper's permissions to `700` and create `/home/you/.cache`. Run the wrapper manually first to check credentials and dependencies.

@@ -69,6 +69,8 @@ python -m devpost_reminder --preview-reminders
 
 Use the same database for previews and live runs to see the stored reminder flags. Use a separate demo database when importing old offline snapshots. Preserve your live SQLite file between runs.
 
+To also check the CSV schedule, run `python -m devpost_reminder --send-reminders --send-export`. CSV uses the same token and chat ID, defaults to Mondays, and sends a short text if its scheduled selection is empty. See [CSV exports](export.md) for daily and new-event modes. The daily GitHub workflow already requests both reminders and exports.
+
 | Problem | What to check |
 | --- | --- |
 | Missing environment variable | Set both variables in the shell that launches Python |

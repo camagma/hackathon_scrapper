@@ -2,7 +2,7 @@
 
 A Python project for tracking online Devpost hackathons and receiving reminders before hackathons open for submissions in Telegram.
 
-**Status: early development.** Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day Telegram reminders, locally or through a daily GitHub Actions workflow with persisted state. CSV generation is available as a module; scheduled CSV delivery is planned.
+Fetch, filter, and store Devpost hackathons in SQLite. Preview or send 7-day and 1-day opening reminders and scheduled CSV exports through Telegram, locally or with GitHub Actions. Reminder and export history persist between runs.
 
 ## Quick start
 
@@ -57,7 +57,7 @@ devpost_reminder/       Application package
   storage.py           SQLite persistence
   reminders.py         Reminder selection and delivery
   telegram.py          Telegram HTTP client and credentials
-  export.py            Temporary, filtered CSV generation
+  export.py            CSV generation, schedules, and delivery
 scripts/               Inspection and runner state tools
 tests/                 Offline tests
 docs/                  Data, storage, and reminder references
@@ -152,6 +152,8 @@ The [Telegram setup guide](docs/telegram.md) includes PowerShell and Bash comman
 
 The [daily GitHub Actions workflow](.github/workflows/reminders.yml) runs at 07:17 UTC and supports manual runs from the default branch. Configure Actions secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` before using it. Its GitHub token needs permission to write the separate `bot-state` branch.
 
+Each run checks opening reminders and the CSV schedule. The default CSV schedule sends weekly on Monday; other daily runs still check reminders.
+
 The workflow restores SQLite before delivery and saves it afterward, including after partially failed sends. Runs share one concurrency group. See [state persistence](docs/state.md#daily-workflow) for permissions, failure behavior, and recovery limits. GitHub schedules may be delayed; they are not an exact-time guarantee.
 
 Follow the [scheduling guide](docs/scheduling.md) to add GitHub Secrets, check the first run, or use Linux cron with a persistent local database instead.
@@ -164,7 +166,21 @@ The Telegram client can upload these CSVs with `sendDocument` and a caption cont
 
 `[export]` accepts `mode = "daily"`, `"weekly"`, or `"new"` (only when new matching events appear). The default is weekly on Monday; `weekday` uses Monday=0 through Sunday=6. SQLite stores the last successful export date and included IDs separately from reminder flags. Existing databases upgrade automatically.
 
-The export delivery function applies the schedule, sends the CSV or a short empty-selection text, and records confirmed success. Failures are logged independently of reminders. CLI/workflow export delivery is not connected yet. See the [CSV reference](docs/export.md) for selection and scheduling behavior.
+Send only the CSV when its configured schedule is due:
+
+```sh
+python -m devpost_reminder --send-export
+```
+
+Send opening reminders and check the CSV schedule in one run, as the workflow does:
+
+```sh
+python -m devpost_reminder --send-reminders --send-export
+```
+
+Both commands require Telegram environment variables and a complete live fetch. `--send-export` respects the schedule; it does not force an upload. For a first test on any weekday, set `mode = "daily"` in `[export]`. Repeating a successful daily export on the same date skips it. Omit `--send-export` for reminder-only delivery.
+
+An export sends the CSV or a short empty-selection text, then records confirmed success. Failures are logged independently of reminders; a failure in either operation produces a nonzero exit status while preserving successful delivery state. See the [CSV reference](docs/export.md) for selection and scheduling behavior.
 
 ## Checks
 
@@ -184,10 +200,6 @@ The inspected listing exposes a **submission period**, with no separate registra
 Dates are human-readable ranges without a time or timezone. They represent calendar dates, not exact cutoff timestamps. See the [Devpost data reference](docs/devpost-data.md) for the observed schema and limitations.
 
 The parser handles same-month and cross-month ranges, explicit years spanning New Year, and single-day events. A single date is used for both start and deadline. Unknown formats and impossible dates stop the sync instead of guessing a deadline.
-
-## Roadmap
-
-- Deliver deadline-sorted CSV exports through Telegram, weekly by default.
 
 ## License
 
