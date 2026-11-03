@@ -34,7 +34,7 @@ def delivery(tmp_path, monkeypatch):
     }]
     fetch = Mock(return_value=items)
     post = Mock(return_value=response({"ok": True, "result": {"message_id": 1}}))
-    monkeypatch.setattr("main.fetch_hackathons", fetch)
+    monkeypatch.setattr("app.fetch_hackathons", fetch)
     monkeypatch.setattr("requests.Session.post", post)
     monkeypatch.setattr("reminders.current_date", lambda config: date(2026, 11, 3))
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-cli-token")

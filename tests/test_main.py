@@ -67,7 +67,7 @@ class MainTests(unittest.TestCase):
 
     def test_incomplete_fetch_does_not_deactivate_previous_snapshot(self):
         self.assertEqual(self.run_cli()[0], 0)
-        with patch("main.fetch_hackathons", side_effect=FetchError("Incomplete listing")):
+        with patch("app.fetch_hackathons", side_effect=FetchError("Incomplete listing")):
             with self.assertLogs(level="ERROR"):
                 self.assertEqual(self.run_cli(offline=False)[0], 1)
         with open_database(self.db) as db:

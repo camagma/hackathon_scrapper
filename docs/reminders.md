@@ -59,4 +59,6 @@ python main.py --send-reminders
 
 Credentials are validated before network access or database updates. The CLI fetches a complete listing, saves it, and connects the dispatcher to `TelegramClient.send_message`. The sender uses the configured HTTP connect/read timeouts. Successful sends retain their flags even if a later send fails; the summary reports all outcomes and exits with code 1 when any sender call fails.
 
+`app.run` coordinates these operations and returns a `RunResult` without printing. `main.py` handles argument parsing, console output, and exit codes. The same application entry point can be called without CLI arguments; it validates delivery and preview modes before performing any side effects.
+
 Sending is mutually exclusive with preview mode. Offline snapshots and `--today` are only available for inspection and previews, so live delivery uses current fetched state and the configured timezone's actual date. A failed fetch prevents all sends. Plain listing mode never loads Telegram credentials or sends messages.
