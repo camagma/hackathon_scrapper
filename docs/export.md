@@ -40,4 +40,26 @@ The upload closes its file handle even on failure. It shares text delivery's tim
 
 ## Delivery status
 
-Generation and the upload client are available as separate modules. CLI integration, export scheduling, and successful-export state will be added separately, including logging upload failures without stopping reminders. No CSV is currently sent by the daily workflow. Empty selections will use a short text message when delivery is connected.
+Generation, the upload client, and schedule rules are available as separate modules. CLI integration and successful-export state will be added separately, including logging upload failures without stopping reminders. No CSV is currently sent by the daily workflow. Empty selections will use a short text message when delivery is connected.
+
+## Schedule settings
+
+Configure an independent CSV schedule in `config.toml`:
+
+```toml
+[export]
+mode = "weekly"
+weekday = 0
+```
+
+| Mode | When an export is due |
+| --- | --- |
+| `daily` | Once per calendar date after the last successful export |
+| `weekly` | On the configured weekday, unless already successful that date |
+| `new` | Only when matching event IDs have appeared since the last successful export |
+
+The default is `weekly`, with `weekday = 0` (Monday). Weekdays run from 0 through 6 (Sunday); the setting only affects weekly mode. Unknown settings and invalid values fail configuration loading.
+
+`export_due` takes the current calendar date, last successful export date, and a `has_new` flag. The caller must supply dates in the configured timezone. The rule does not perform network requests or change state. Only confirmed success should advance the supplied history; a failed upload remains eligible for retry.
+
+Weekly exports do not catch up on another weekday after a missed run. New-event mode may export more than once on the same day if additional matching IDs appear. A date earlier than the last successful export never triggers a new export. These rules do not affect 7-day or 1-day reminders.

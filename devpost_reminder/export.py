@@ -8,12 +8,25 @@ from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from .config import Config
+from .config import Config, ExportConfig
 from .filters import matches_fields
 from .storage import Hackathon
 
 
 COLUMNS = ("id", "title", "url", "start_date", "deadline", "days_left", "themes", "prize", "open_state")
+
+
+def export_due(
+    settings: ExportConfig, today: date, last_success: date | None, *, has_new: bool = False,
+) -> bool:
+    """Check a calendar schedule using the last confirmed successful export."""
+    if last_success is not None and last_success > today:
+        return False
+    if settings.mode == "new":
+        return has_new
+    if last_success == today:
+        return False
+    return settings.mode == "daily" or today.weekday() == settings.weekday
 
 
 @dataclass(frozen=True)

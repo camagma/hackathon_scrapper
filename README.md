@@ -78,6 +78,10 @@ themes = ["Machine Learning/AI"]
 keywords = ["agent", "Python"]
 database_path = "data/hackathons.sqlite3"
 timezone = "Region/City"
+
+[export]
+mode = "weekly"
+weekday = 0
 ```
 
 Replace `Region/City` with a valid IANA timezone name before using this example.
@@ -154,7 +158,9 @@ Follow the [scheduling guide](docs/scheduling.md) to add GitHub Secrets, check t
 
 The [export module](devpost_reminder/export.py) generates a temporary CSV from stored events using the same filters as reminders. It includes IDs, titles, links, submission start dates, deadlines, days remaining, themes, prizes, and states, ordered by deadline and ID. Files use `utf-8-sig` for Excel and are removed after use.
 
-The Telegram client can upload these CSVs with `sendDocument` and a caption containing the event count and nearest submission deadline. A document preserves a downloadable table for Excel instead of placing the CSV contents in a chat message. CSV delivery is not yet connected to the CLI or scheduled workflow. See the [CSV reference](docs/export.md) for selection and file-lifetime behavior.
+The Telegram client can upload these CSVs with `sendDocument` and a caption containing the event count and nearest submission deadline. A document preserves a downloadable table for Excel instead of placing the CSV contents in a chat message.
+
+`[export]` accepts `mode = "daily"`, `"weekly"`, or `"new"` (only when new matching events appear). The default is weekly on Monday; `weekday` uses Monday=0 through Sunday=6. Schedule rules are implemented, but successful-export history and CLI/workflow delivery are not connected yet. See the [CSV reference](docs/export.md) for selection and scheduling behavior.
 
 ## Checks
 

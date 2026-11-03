@@ -15,3 +15,7 @@ per_page = 40
 max_pages = 10
 max_retries = 2
 max_retry_wait_seconds = 120
+
+[export]
+mode = "weekly" # daily, weekly, or new (only when new matching events appear)
+weekday = 0 # Weekly mode: Monday=0 through Sunday=6

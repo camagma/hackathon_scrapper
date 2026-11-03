@@ -22,6 +22,20 @@ class HttpConfig:
 
 
 @dataclass(frozen=True)
+class ExportConfig:
+    """Select a CSV schedule independently of reminder thresholds."""
+
+    mode: str = "weekly"
+    weekday: int = 0
+
+    def __post_init__(self) -> None:
+        if self.mode not in ("daily", "weekly", "new"):
+            raise ValueError("export.mode must be daily, weekly, or new")
+        if type(self.weekday) is not int or not 0 <= self.weekday <= 6:
+            raise ValueError("export.weekday must be an integer from 0 (Monday) to 6 (Sunday)")
+
+
+@dataclass(frozen=True)
 class Config:
     """Keep server and local filter settings together."""
 
@@ -32,13 +46,14 @@ class Config:
     http: HttpConfig = field(default_factory=HttpConfig)
     database_path: Path = Path("data/hackathons.sqlite3")
     timezone: str = "UTC"
+    export: ExportConfig = field(default_factory=ExportConfig)
 
 
 def load_config(path: Path) -> Config:
     """Reject invalid values before making any requests."""
     with path.open("rb") as source:
         raw = tomllib.load(source)
-    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http", "database_path", "timezone"}
+    unknown = raw.keys() - {"online_only", "statuses", "themes", "keywords", "http", "database_path", "timezone", "export"}
     if unknown:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     online = raw.get("online_only", True)
@@ -79,4 +94,9 @@ def load_config(path: Path) -> Config:
         value = getattr(http, name)
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"http.{name} must be a finite positive number")
-    return Config(online_only=online, http=http, database_path=database_path, timezone=timezone_name, **filters)
+    export_settings = raw.get("export", {})
+    if not isinstance(export_settings, dict) or export_settings.keys() - {"mode", "weekday"}:
+        raise ValueError("Invalid or unknown export configuration")
+    export = ExportConfig(**export_settings)
+    return Config(online_only=online, http=http, database_path=database_path,
+                  timezone=timezone_name, export=export, **filters)
