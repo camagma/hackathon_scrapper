@@ -81,3 +81,11 @@ To also check the CSV schedule, run `python -m devpost_reminder --send-reminders
 | Transport timeout | Delivery may be uncertain; retries can duplicate a message accepted before the timeout |
 
 For selection rules and delivery limits, see [reminder behavior](reminders.md). For the daily workflow and required GitHub Secrets, see [scheduled state persistence](state.md#daily-workflow).
+
+## Update polling foundation
+
+`TelegramClient.get_updates(offset, limit=100)` fetches one batch for the planned interactive digest. It uses plain HTTP `getUpdates`, requests message and callback-query updates, and waits up to five seconds for incoming updates. The HTTP read timeout is at least ten seconds. Invalid arguments or malformed batches fail without changing local state; errors share the delivery client's sanitized logging and rate-limit cooldown.
+
+The method does not process commands, change subscriptions, or advance the SQLite cursor. It is not called by the CLI or workflow yet. A future handler must persist subscription changes and the next offset atomically, and publish runner state successfully before requesting a higher offset: Telegram confirms older updates when that higher offset is requested. Fetching subsequent batches before saving remote state can lose user choices after runner failure.
+
+Telegram retains incoming updates for at most 24 hours, so interactive operation needs more frequent polling than the existing daily delivery schedule. `getUpdates` cannot operate while a webhook is configured; HTTP 409 is reported rather than automatically removing a webhook or discarding queued updates. See the [official update API](https://core.telegram.org/bots/api#getupdates).

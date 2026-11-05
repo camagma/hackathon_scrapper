@@ -77,7 +77,33 @@ class TelegramClient:
             )
 
     def _send(self, method: str, **payload) -> None:
-        """Share response validation, cooldowns, and sanitized transport errors."""
+        """Require a confirmed message result for outgoing delivery."""
+        result = self._request(method, **payload)
+        if not isinstance(result, dict) or type(result.get("message_id")) is not int:
+            raise TelegramError("Telegram returned an invalid message result")
+
+    def get_updates(self, offset: int = 0, *, limit: int = 100) -> list[dict]:
+        """Fetch one bounded batch without advancing the caller's durable cursor."""
+        if type(offset) is not int or offset < 0:
+            raise ValueError("Telegram update offset must be a nonnegative integer")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("Telegram update limit must be between 1 and 100")
+        result = self._request("getUpdates", request_timeout=(self._timeout[0], max(self._timeout[1], 10)), json={
+            "offset": offset, "limit": limit, "timeout": 5,
+            "allowed_updates": ["message", "callback_query"],
+        })
+        if not isinstance(result, list) or len(result) > limit:
+            raise TelegramError("Telegram returned an invalid updates result")
+        previous = offset - 1
+        for update in result:
+            if (not isinstance(update, dict) or type(update.get("update_id")) is not int
+                    or update["update_id"] <= previous):
+                raise TelegramError("Telegram returned invalid update IDs")
+            previous = update["update_id"]
+        return result
+
+    def _request(self, method: str, *, request_timeout=None, **payload) -> object:
+        """Share API validation, cooldowns, and sanitized transport errors."""
         remaining = self._blocked_until - time.monotonic()
         if remaining > 0:
             raise TelegramError("Telegram rate limit cooldown is active", status_code=429,
@@ -85,7 +111,7 @@ class TelegramClient:
         url = f"https://api.telegram.org/bot{self._credentials.token}/{method}"
         try:
             with self._session.post(
-                url, timeout=self._timeout, allow_redirects=False, **payload,
+                url, timeout=request_timeout or self._timeout, allow_redirects=False, **payload,
             ) as response:
                 status = response.status_code
                 try:
@@ -106,6 +132,4 @@ class TelegramClient:
         if not isinstance(body, dict) or body.get("ok") is not True:
             safe_code = code if type(code) is int else None
             raise TelegramError("Telegram did not confirm delivery", status_code=safe_code)
-        result = body.get("result")
-        if not isinstance(result, dict) or type(result.get("message_id")) is not int:
-            raise TelegramError("Telegram returned an invalid message result")
+        return body.get("result")
