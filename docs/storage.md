@@ -2,7 +2,7 @@
 
 ## Database lifecycle
 
-`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 3 automatically. Version 1 and 2 databases are upgraded transactionally without changing existing hackathons or reminder flags. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
+`devpost_reminder/storage.py` uses the standard-library `sqlite3` module. The CLI creates the configured parent directory and initializes schema version 4 automatically. Version 1, 2, and 3 databases are upgraded transactionally without changing existing hackathons or reminder flags. The version is stored in `PRAGMA user_version`; an unsupported future version is rejected.
 
 The default location is `data/hackathons.sqlite3`, resolved relative to `config.toml`. `--db` overrides it with a path relative to the current working directory. Connections use a 30-second lock timeout and are explicitly closed after use, including on Windows.
 
@@ -55,6 +55,12 @@ python -m devpost_reminder --offline inspection/upcoming.json --db data/demo.sql
 The second run reports zero new rows. `refreshed` counts existing IDs processed, even when their metadata did not change.
 
 ## Durable state
+
+Schema version 4 adds subscription storage for the planned interactive digest. It is not connected to Telegram delivery yet. `subscriptions` stores a chat/event pair, active membership, and independent 7-day/1-day opening reminder flags. Unsubscribing keeps the row and its flags; resubscribing does not reset delivery history. Foreign keys reject unknown hackathon IDs.
+
+`telegram_updates` stores the next Telegram update offset. Subscription changes and cursor advancement require the caller's explicit transaction, so they can commit or roll back together. The cursor cannot move backwards.
+
+Subscription rows contain Telegram chat IDs. Before enabling interactive subscriptions, move runner state to private storage: a `bot-state` branch in a public repository exposes its database. The current CLI does not write subscriptions or process Telegram updates.
 
 The independent `export_state` table contains one row for the last confirmed CSV delivery (or confirmed empty-selection text): its calendar date and a JSON list of exported hackathon IDs. There is no row before the first success. This is the latest export snapshot, not an append-only delivery log.
 

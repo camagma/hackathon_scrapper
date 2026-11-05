@@ -108,7 +108,7 @@ def test_version_one_migrates_without_losing_reminders(tmp_path):
                       'Nov 01 - 10, 2026', '[]', '', 'open', 'Online', 'Example', 1, 1)""")
     for _ in range(2):
         with open_database(path) as connection:
-            assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+            assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
             event = get_hackathon(connection, 1)
             assert event.title == "Legacy event" and event.reminded_7d and event.reminded_1d
             assert read_export_state(connection) == ExportState()
@@ -136,7 +136,7 @@ def test_version_two_migration_preserves_export_history_and_adds_fresh_flags(tmp
             connection.execute("PRAGMA user_version = 2")
             connection.execute("INSERT INTO export_state VALUES (1, '2026-11-03', '[1, 2]')")
     with open_database(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         assert read_export_state(connection) == ExportState(DAY, frozenset({1, 2}))
         columns = {row[1] for row in connection.execute("PRAGMA table_info(hackathons)")}
         assert {"reminded_start_7d", "reminded_start_1d"} <= columns

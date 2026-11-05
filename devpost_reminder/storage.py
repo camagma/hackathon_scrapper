@@ -12,7 +12,7 @@ from .dates import parse_submission_period
 from .fetch import plain_text
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS hackathons (
     id INTEGER PRIMARY KEY,
@@ -88,10 +88,11 @@ def open_database(path: Path) -> Iterator[sqlite3.Connection]:
     path.parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(path, timeout=30)) as connection:
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, SCHEMA_VERSION):
+            if version not in (0, 1, 2, 3, SCHEMA_VERSION):
                 raise ValueError(f"Unsupported database schema version: {version}")
             connection.execute(SCHEMA)
             connection.execute("CREATE INDEX IF NOT EXISTS hackathons_deadline ON hackathons(deadline, id)")
@@ -102,6 +103,19 @@ def open_database(path: Path) -> Iterator[sqlite3.Connection]:
                     connection.execute(
                         f"ALTER TABLE hackathons ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0 CHECK ({column} IN (0, 1))"
                     )
+            if version < 4:
+                connection.execute("""CREATE TABLE subscriptions (
+                    chat_id INTEGER NOT NULL,
+                    hackathon_id INTEGER NOT NULL REFERENCES hackathons(id),
+                    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+                    reminded_7d INTEGER NOT NULL DEFAULT 0 CHECK (reminded_7d IN (0, 1)),
+                    reminded_1d INTEGER NOT NULL DEFAULT 0 CHECK (reminded_1d IN (0, 1)),
+                    PRIMARY KEY (chat_id, hackathon_id)
+                )""")
+                connection.execute("""CREATE TABLE telegram_updates (
+                    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                    next_offset INTEGER NOT NULL CHECK (next_offset >= 0)
+                )""")
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         yield connection
 
