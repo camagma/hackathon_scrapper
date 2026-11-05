@@ -23,6 +23,7 @@ jobs:
       contents: write
     env:
       STATE_DATABASE: data/hackathons.sqlite3
+      STATE_CHECKOUT: ${{ vars.STATE_REPOSITORY != '' && '.state-store' || '.' }}
     steps:
       - name: Check out the application
         uses: actions/checkout@v7
@@ -39,9 +40,25 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
+      - name: Verify private state repository
+        if: vars.STATE_REPOSITORY != ''
+        env:
+          GH_TOKEN: ${{ secrets.STATE_REPOSITORY_TOKEN }}
+          STATE_REPOSITORY: ${{ vars.STATE_REPOSITORY }}
+        run: python scripts/check_state_repository.py
+
+      - name: Check out private state repository
+        if: vars.STATE_REPOSITORY != ''
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ vars.STATE_REPOSITORY }}
+          token: ${{ secrets.STATE_REPOSITORY_TOKEN }}
+          path: .state-store
+          persist-credentials: true
+
       - name: Restore reminder state
         id: restore
-        run: python scripts/state_db.py restore --database "$STATE_DATABASE"
+        run: python scripts/state_db.py restore --repo "$STATE_CHECKOUT" --database "$STATE_DATABASE"
 
       - name: Fetch hackathons, send reminders and scheduled CSV
         id: reminders
@@ -56,7 +73,7 @@ jobs:
         if: ${{ !cancelled() && steps.restore.outcome == 'success' && steps.reminders.outcome != 'skipped' }}
         run: |
           if [[ -f "$STATE_DATABASE" ]]; then
-            python scripts/state_db.py save --database "$STATE_DATABASE"
+            python scripts/state_db.py save --repo "$STATE_CHECKOUT" --database "$STATE_DATABASE"
           else
             echo "No database was created; nothing to save."
           fi

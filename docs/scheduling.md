@@ -17,6 +17,8 @@ Use repository secrets, not Actions variables or environment secrets: this workf
 
 ### Check repository permissions
 
+For the optional private state repository, follow the [private-state setup and migration guide](state.md#optional-private-state-repository). That mode uses `STATE_REPOSITORY` (Actions variable) and `STATE_REPOSITORY_TOKEN` (secret). The default same-repository mode below remains available for existing runs without interactive subscriptions.
+
 Ensure GitHub Actions is enabled and your repository's action policy permits `actions/checkout` and `actions/setup-python`. The workflow requests `contents: write` for its reminder job. The automatic `GITHUB_TOKEN` handles Git access; do not create a separate token secret.
 
 Repository or organization rules must allow that token to create and update `bot-state`. Rules requiring pull requests or signed commits on every branch can block state publication; scope those rules appropriately for this dedicated state branch. Keep protections for application code.

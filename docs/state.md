@@ -6,6 +6,21 @@ GitHub-hosted runners do not retain the previous job's local SQLite file. This p
 
 ## State format
 
+### Optional private state repository
+
+Interactive subscriptions will contain Telegram chat IDs. Before enabling that feature, use a separate **private** repository for state. Existing single-chat runs remain unchanged when `STATE_REPOSITORY` is unset.
+
+1. Create a private repository with an initial README so its default branch exists. Do not add workflows or application code there.
+2. Create a fine-grained personal access token restricted to that repository, with **Contents: Read and write** permission. Add it as the application repository Actions secret `STATE_REPOSITORY_TOKEN`.
+3. Pause scheduled runs during migration and wait for active jobs to finish. Copy the existing `bot-state` branch to the private repository before switching configuration; preserve the SQLite file and its reminder/export history. For example, in a disposable clone, run `git fetch origin bot-state`, then `git push https://github.com/OWNER/PRIVATE_STATE.git FETCH_HEAD:refs/heads/bot-state`. Authenticate with your credential manager, never a token embedded in the URL.
+4. Set the application repository Actions **variable** `STATE_REPOSITORY` to `OWNER/PRIVATE_STATE`, then manually run and check restoration and saving. Starting with no state branch initializes empty history and can resend reminders.
+
+The workflow checks repository metadata before checkout and refuses public repositories, missing credentials, redirects, or failed checks. It checks out the private repository into ignored `.state-store/` and passes that directory to the existing state helper. The application code still comes from the application repository. The private repository token is used only for verification and state checkout; Telegram secrets remain limited to application delivery.
+
+The built-in `GITHUB_TOKEN` is scoped to the current repository; a separate token is needed for a private secondary checkout. See the [official checkout examples](https://github.com/actions/checkout#checkout-multiple-repos-private). Repository rules must permit updating its `bot-state` branch. Do not run multiple application repositories against the same state store: their concurrency groups do not coordinate across repositories.
+
+This change prepares private storage; it does not migrate remote data or enable interactive subscriptions. Keep the state repository private. Previous public branch history is not removed by switching destinations.
+
 The branch contains one file, `hackathons.sqlite3`, with no application code or Telegram credentials. The helper uses Git objects to create commits without switching the working branch or changing the staging area. The application database stays ignored on the code branch.
 
 Each restore records its source commit in an ignored `*.state-revision` file beside the database. Saving uses that exact revision as its parent and performs a normal push without force. If another writer has advanced the branch, the push is rejected instead of overwriting newer reminder flags. The workflow serializes all scheduled and manual runs in one concurrency group without cancelling a running job.
